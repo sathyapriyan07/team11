@@ -25,6 +25,8 @@ Cricket playing XI builder built with React, Vite, and Supabase.
 
 The app starts with an empty catalog; no cricket records are bundled as seed data. Previously saved browser or Supabase data is preserved. The admin panel's **Clear All App Data** action clears this browser's app data and replaces the shared Supabase catalog with an empty catalog.
 
+Player creation and editing use dedicated admin pages, linked from the player registry.
+
 The shared catalog is publicly readable and editable only by authorized admins. Uploaded player images are publicly viewable; uploads are admin-only and limited to 5 MB JPEG, PNG, WebP, or GIF files. Custom pools, saved playing XIs, likes, and bookmarks remain in browser storage because they are user-specific and this setup does not add end-user accounts. If Supabase variables are absent, the app continues to use browser storage.
 
 # team11

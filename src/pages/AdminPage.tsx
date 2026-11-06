@@ -1,16 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { storageService } from '../services/storageService';
-import { isSupabaseAdmin, supabase, uploadPlayerImage } from '../services/supabaseClient';
+import { isSupabaseAdmin, supabase } from '../services/supabaseClient';
 import {
-  BattingHand,
-  BowlingStyle,
   Competition,
   CompetitionRules,
   CricketFormat,
   Player,
-  PlayerAttributes,
-  PlayerRole,
-  PlayerSpecialization,
   SquadMembership,
   TeamEntity,
 } from '../types/cricket';
@@ -26,103 +22,7 @@ import {
   CheckCircle2,
   FileCode,
   RotateCcw,
-  Sparkles,
-  Search,
-  X,
-  AlertTriangle,
 } from 'lucide-react';
-
-const EMPTY_PLAYER_ATTRIBUTES: PlayerAttributes = {
-  technique: 50,
-  powerHitting: 50,
-  timing: 50,
-  shotSelection: 50,
-  strikeRotation: 50,
-  againstPace: 50,
-  againstSpin: 50,
-  finishing: 50,
-  consistency: 50,
-  pace: 50,
-  swing: 50,
-  seam: 50,
-  spin: 50,
-  accuracy: 50,
-  variations: 50,
-  deathBowling: 50,
-  powerplayBowling: 50,
-  control: 50,
-  catching: 50,
-  groundFielding: 50,
-  throwing: 50,
-  reflexes: 50,
-  agility: 50,
-  wkReflexes: 50,
-  wkCatching: 50,
-  wkStumping: 50,
-  wkGlovework: 50,
-  wkPositioning: 50,
-  fitness: 50,
-  experience: 50,
-  leadership: 50,
-  pressureHandling: 50,
-  versatility: 50,
-};
-
-const ATTRIBUTE_GROUPS: { title: string; fields: { key: keyof PlayerAttributes; label: string }[] }[] = [
-  {
-    title: 'Batting',
-    fields: [
-      { key: 'technique', label: 'Technique' },
-      { key: 'powerHitting', label: 'Power hitting' },
-      { key: 'timing', label: 'Timing' },
-      { key: 'shotSelection', label: 'Shot selection' },
-      { key: 'strikeRotation', label: 'Strike rotation' },
-      { key: 'againstPace', label: 'Against pace' },
-      { key: 'againstSpin', label: 'Against spin' },
-      { key: 'finishing', label: 'Finishing' },
-      { key: 'consistency', label: 'Consistency' },
-    ],
-  },
-  {
-    title: 'Bowling',
-    fields: [
-      { key: 'pace', label: 'Pace' },
-      { key: 'swing', label: 'Swing' },
-      { key: 'seam', label: 'Seam' },
-      { key: 'spin', label: 'Spin' },
-      { key: 'accuracy', label: 'Accuracy' },
-      { key: 'variations', label: 'Variations' },
-      { key: 'deathBowling', label: 'Death bowling' },
-      { key: 'powerplayBowling', label: 'Powerplay bowling' },
-      { key: 'control', label: 'Control' },
-    ],
-  },
-  {
-    title: 'Fielding & wicketkeeping',
-    fields: [
-      { key: 'catching', label: 'Catching' },
-      { key: 'groundFielding', label: 'Ground fielding' },
-      { key: 'throwing', label: 'Throwing' },
-      { key: 'reflexes', label: 'Reflexes' },
-      { key: 'agility', label: 'Agility' },
-      { key: 'wkReflexes', label: 'WK reflexes' },
-      { key: 'wkCatching', label: 'WK catching' },
-      { key: 'wkStumping', label: 'WK stumping' },
-      { key: 'wkGlovework', label: 'WK glovework' },
-      { key: 'wkPositioning', label: 'WK positioning' },
-    ],
-  },
-  {
-    title: 'General',
-    fields: [
-      { key: 'fitness', label: 'Fitness' },
-      { key: 'experience', label: 'Experience' },
-      { key: 'leadership', label: 'Leadership' },
-      { key: 'pressureHandling', label: 'Pressure handling' },
-      { key: 'versatility', label: 'Versatility' },
-    ],
-  },
-];
 
 const DEFAULT_COMPETITION_RULES: CompetitionRules = {
   maxOverseas: 4,
@@ -136,47 +36,14 @@ const DEFAULT_COMPETITION_RULES: CompetitionRules = {
   requireViceCaptain: true,
 };
 
-const DEFAULT_PLAYER_STATS: Player['stats'][keyof Player['stats']] = {
-  matches: 0,
-  innings: 0,
-  runs: 0,
-  highestScore: '0',
-  battingAverage: 0,
-  strikeRate: 0,
-  centuries: 0,
-  fifties: 0,
-  wickets: 0,
-  bowlingAverage: 0,
-  economy: 0,
-  bestBowling: '0/0',
-  fiveWickets: 0,
-  catches: 0,
-  stumpings: 0,
-};
-
 export const AdminPage: React.FC = () => {
+  const navigate = useNavigate();
   const [players, setPlayers] = useState<Player[]>([]);
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [teams, setTeams] = useState<TeamEntity[]>([]);
   const [squads, setSquads] = useState<SquadMembership[]>([]);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'players' | 'teams' | 'competitions' | 'import' | 'schema'>('dashboard');
 
-  // Player Form Modal State
-  const [playerModalOpen, setPlayerModalOpen] = useState(false);
-  const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
-  const [formName, setFormName] = useState('');
-  const [formCountry, setFormCountry] = useState('India');
-  const [formRole, setFormRole] = useState<PlayerRole>('Batter');
-  const [formSpec, setFormSpec] = useState('Top-order batter');
-  const [formBatHand, setFormBatHand] = useState<'Right-hand bat' | 'Left-hand bat'>('Right-hand bat');
-  const [formBowlStyle, setFormBowlStyle] = useState('Right-arm medium');
-  const [formOverall, setFormOverall] = useState(85);
-  const [formT20, setFormT20] = useState(85);
-  const [formODI, setFormODI] = useState(85);
-  const [formTest, setFormTest] = useState(80);
-  const [formOverseas, setFormOverseas] = useState(false);
-  const [formImage, setFormImage] = useState('https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?w=400&auto=format&fit=crop&q=80');
-  const [formAttributes, setFormAttributes] = useState<PlayerAttributes>({ ...EMPTY_PLAYER_ATTRIBUTES });
   const [competitionName, setCompetitionName] = useState('');
   const [competitionShortName, setCompetitionShortName] = useState('');
   const [competitionCountry, setCompetitionCountry] = useState('');
@@ -205,10 +72,6 @@ export const AdminPage: React.FC = () => {
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [authError, setAuthError] = useState('');
-  const [imageUploadError, setImageUploadError] = useState('');
-  const [imageUploadSuccess, setImageUploadSuccess] = useState('');
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const imageFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     refreshData();
@@ -262,103 +125,6 @@ export const AdminPage: React.FC = () => {
     if (!supabase) return;
     const { error } = await supabase.auth.signOut();
     if (error) setAuthError(error.message);
-  };
-
-  const handleUploadPlayerImage = async (file?: File) => {
-    if (!file) return;
-    if (!cloudStatus.configured) {
-      setImageUploadError('Configure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY, then restart the app.');
-      return;
-    }
-    if (!requireAdminAccess()) return;
-    setImageUploadError('');
-    setImageUploadSuccess('');
-    setUploadingImage(true);
-    try {
-      setFormImage(await uploadPlayerImage(file));
-      setImageUploadSuccess(`${file.name} uploaded. Save the player to keep this image.`);
-    } catch (error) {
-      setImageUploadError(error instanceof Error ? error.message : 'Image upload failed.');
-    } finally {
-      setUploadingImage(false);
-      if (imageFileInputRef.current) imageFileInputRef.current.value = '';
-    }
-  };
-
-  const handleOpenAddPlayer = () => {
-    if (!requireAdminAccess()) return;
-    setEditingPlayerId(null);
-    setFormName('');
-    setFormCountry('India');
-    setFormRole('Batter');
-    setFormSpec('Top-order batter');
-    setFormBatHand('Right-hand bat');
-    setFormBowlStyle('Right-arm medium');
-    setFormOverall(85);
-    setFormT20(85);
-    setFormODI(85);
-    setFormTest(80);
-    setFormOverseas(false);
-    setFormImage('https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?w=400&auto=format&fit=crop&q=80');
-    setFormAttributes({ ...EMPTY_PLAYER_ATTRIBUTES });
-    setFormError('');
-    setPlayerModalOpen(true);
-  };
-
-  const handleOpenEditPlayer = (p: Player) => {
-    if (!requireAdminAccess()) return;
-    setEditingPlayerId(p.id);
-    setFormName(p.fullName);
-    setFormCountry(p.country);
-    setFormRole(p.primaryRole);
-    setFormSpec(p.specialization);
-    setFormBatHand(p.battingHand);
-    setFormBowlStyle(p.bowlingStyle);
-    setFormOverall(p.overallRating);
-    setFormT20(p.formatRatings.T20);
-    setFormODI(p.formatRatings.ODI);
-    setFormTest(p.formatRatings.TEST);
-    setFormOverseas(p.isOverseasIPL || false);
-    setFormImage(p.imageUrl);
-    setFormAttributes({ ...EMPTY_PLAYER_ATTRIBUTES, ...p.attributes });
-    setFormError('');
-    setPlayerModalOpen(true);
-  };
-
-  const handleSavePlayer = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!requireAdminAccess() || !formName.trim()) return;
-
-    const existingPlayer = editingPlayerId ? storageService.getPlayerById(editingPlayerId) : undefined;
-    const newPlayer: Player = {
-      id: editingPlayerId || `p-${Date.now()}`,
-      fullName: formName.trim(),
-      displayName: formName.trim().split(' ').slice(0, 2).join(' '),
-      country: formCountry,
-      nationality: formCountry,
-      imageUrl: formImage,
-      primaryRole: formRole,
-      secondaryRoles: [],
-      specialization: formSpec as PlayerSpecialization,
-      battingHand: formBatHand,
-      bowlingStyle: formBowlStyle as BowlingStyle,
-      careerStatus: 'Active',
-      bio: `Professional cricketer representing ${formCountry} with high caliber tactical versatility.`,
-      overallRating: formOverall,
-      formatRatings: { T20: formT20, ODI: formODI, TEST: formTest },
-      attributes: { ...formAttributes },
-      stats: existingPlayer?.stats ?? {
-        T20: { ...DEFAULT_PLAYER_STATS },
-        ODI: { ...DEFAULT_PLAYER_STATS },
-        TEST: { ...DEFAULT_PLAYER_STATS },
-      },
-      teamsPlayed: existingPlayer?.teamsPlayed ?? [],
-      isOverseasIPL: formOverseas,
-    };
-
-    storageService.savePlayer(newPlayer);
-    setPlayerModalOpen(false);
-    setFormError('');
   };
 
   const handleSaveCompetition = (e: React.FormEvent) => {
@@ -554,7 +320,7 @@ export const AdminPage: React.FC = () => {
       )}
 
       {/* Tabs */}
-      <div className="flex border-b border-white/5 bg-[#121720] px-4 rounded-2xl">
+      <div className="flex w-full min-w-0 flex-nowrap overflow-x-auto rounded-2xl border-b border-white/5 bg-[#121720] px-4">
         {(
           [
             { id: 'dashboard', label: 'Metrics & Health', icon: Database },
@@ -571,7 +337,7 @@ export const AdminPage: React.FC = () => {
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 py-3.5 px-4 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer ${
+              className={`flex shrink-0 items-center gap-2 whitespace-nowrap py-3.5 px-4 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer ${
                 activeTab === tab.id
                   ? 'border-[#20C878] text-[#20C878]'
                   : 'border-transparent text-[#929BA8] hover:text-white'
@@ -658,7 +424,7 @@ export const AdminPage: React.FC = () => {
             </h3>
             <button
               type="button"
-              onClick={handleOpenAddPlayer}
+              onClick={() => navigate('/admin/players/new')}
               className="px-4 py-2 bg-[#20C878] hover:bg-[#1bb56c] text-[#090B0F] font-bold text-xs rounded-xl shadow-md flex items-center gap-1.5 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
@@ -697,7 +463,7 @@ export const AdminPage: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => handleOpenEditPlayer(p)}
+                    onClick={() => navigate(`/admin/players/${encodeURIComponent(p.id)}/edit`)}
                     className="px-3 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-semibold text-white"
                   >
                     Edit
@@ -983,238 +749,6 @@ export const AdminPage: React.FC = () => {
         </div>
       )}
 
-      {/* Add / Edit Player Modal */}
-      {playerModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
-          <div className="relative w-full max-w-5xl max-h-[92vh] overflow-y-auto bg-[#121720] border border-white/10 rounded-2xl p-6 shadow-2xl my-8">
-            <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-4">
-              <h3 className="text-lg font-bold font-heading text-white">
-                {editingPlayerId ? 'Edit Player Record' : 'Register New Player'}
-              </h3>
-              <button
-                type="button"
-                onClick={() => setPlayerModalOpen(false)}
-                className="p-1 text-[#929BA8] hover:text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSavePlayer} className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div className="sm:col-span-2">
-                <label className="text-[#929BA8] font-semibold block mb-1">Full Name:</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Jasprit Bumrah"
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  className="w-full p-2.5 bg-[#181F29] border border-white/10 rounded-xl text-white focus:outline-none focus:border-[#20C878]"
-                />
-              </div>
-
-              <div className="sm:col-span-2">
-                <label className="text-[#929BA8] font-semibold block mb-1">Player image URL:</label>
-                <input
-                  type="url"
-                  value={formImage}
-                  onChange={(e) => setFormImage(e.target.value)}
-                  className="w-full p-2.5 bg-[#181F29] border border-white/10 rounded-xl text-white focus:outline-none focus:border-[#20C878]"
-                />
-                <div className="mt-2 flex flex-wrap items-center gap-3">
-                  <input
-                    ref={imageFileInputRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,image/gif"
-                    onChange={(e) => void handleUploadPlayerImage(e.target.files?.[0])}
-                    className="hidden"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => imageFileInputRef.current?.click()}
-                    disabled={uploadingImage || !cloudStatus.configured || !cloudStatus.isAdmin}
-                    className="px-3 py-2 rounded-lg text-xs font-semibold bg-white/5 text-white hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {uploadingImage ? 'Uploading…' : 'Choose image file'}
-                  </button>
-                  <span className="text-[11px] text-[#929BA8]">JPEG, PNG, WebP, or GIF; up to 5 MB.</span>
-                </div>
-                {!cloudStatus.configured && (
-                  <p className="mt-2 text-[11px] text-amber-300">
-                    Supabase is not configured. Add the URL and anon key to .env.local, then restart the dev server to enable uploads.
-                  </p>
-                )}
-                {cloudStatus.configured && !cloudStatus.isAdmin && (
-                  <p className="mt-2 text-[11px] text-amber-300">
-                    Sign in with an authorized Supabase admin account above to upload images.
-                  </p>
-                )}
-                {imageUploadError && <p role="alert" className="mt-2 text-xs text-rose-400">{imageUploadError}</p>}
-                {imageUploadSuccess && <p role="status" className="mt-2 text-xs text-emerald-400">{imageUploadSuccess}</p>}
-                {formImage && <img src={formImage} alt="Player image preview" className="mt-3 h-24 w-24 rounded-xl border border-white/10 object-cover" />}
-              </div>
-
-              <div>
-                <label className="text-[#929BA8] font-semibold block mb-1">Country:</label>
-                <input
-                  type="text"
-                  required
-                  value={formCountry}
-                  onChange={(e) => setFormCountry(e.target.value)}
-                  className="w-full p-2.5 bg-[#181F29] border border-white/10 rounded-xl text-white focus:outline-none focus:border-[#20C878]"
-                />
-              </div>
-
-              <div>
-                <label className="text-[#929BA8] font-semibold block mb-1">Primary Role:</label>
-                <select
-                  value={formRole}
-                  onChange={(e) => setFormRole(e.target.value as PlayerRole)}
-                  className="w-full p-2.5 bg-[#181F29] border border-white/10 rounded-xl text-white focus:outline-none focus:border-[#20C878]"
-                >
-                  <option value="Batter">Batter</option>
-                  <option value="Bowler">Bowler</option>
-                  <option value="All-rounder">All-rounder</option>
-                  <option value="Wicketkeeper">Wicketkeeper</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-[#929BA8] font-semibold block mb-1">Specialization:</label>
-                <input
-                  type="text"
-                  value={formSpec}
-                  onChange={(e) => setFormSpec(e.target.value)}
-                  className="w-full p-2.5 bg-[#181F29] border border-white/10 rounded-xl text-white focus:outline-none focus:border-[#20C878]"
-                />
-              </div>
-
-              <div>
-                <label className="text-[#929BA8] font-semibold block mb-1">Batting Hand:</label>
-                <select
-                  value={formBatHand}
-                  onChange={(e) => setFormBatHand(e.target.value as BattingHand)}
-                  className="w-full p-2.5 bg-[#181F29] border border-white/10 rounded-xl text-white focus:outline-none focus:border-[#20C878]"
-                >
-                  <option value="Right-hand bat">Right-hand bat</option>
-                  <option value="Left-hand bat">Left-hand bat</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-[#929BA8] font-semibold block mb-1">Bowling Style:</label>
-                <select
-                  value={formBowlStyle}
-                  onChange={(e) => setFormBowlStyle(e.target.value)}
-                  className="w-full p-2.5 bg-[#181F29] border border-white/10 rounded-xl text-white focus:outline-none focus:border-[#20C878]"
-                >
-                  {([
-                    'Right-arm fast',
-                    'Right-arm fast-medium',
-                    'Right-arm medium',
-                    'Left-arm fast',
-                    'Left-arm fast-medium',
-                    'Right-arm off-break',
-                    'Right-arm leg-break',
-                    'Left-arm orthodox',
-                    'Left-arm wrist-spin',
-                    'None',
-                  ] satisfies BowlingStyle[]).map((style) => <option key={style} value={style}>{style}</option>)}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-[#929BA8] font-semibold block mb-1">Overall Master Rating (1-100):</label>
-                <input
-                  type="number"
-                  min="1"
-                  max="100"
-                  value={formOverall}
-                  onChange={(e) => setFormOverall(Math.max(1, Math.min(100, Number(e.target.value))))}
-                  className="w-full p-2.5 bg-[#181F29] border border-white/10 rounded-xl text-white focus:outline-none focus:border-[#20C878]"
-                />
-              </div>
-
-              {([
-                ['T20', formT20, setFormT20],
-                ['ODI', formODI, setFormODI],
-                ['Test', formTest, setFormTest],
-              ] as const).map(([format, rating, setRating]) => (
-                <label key={format} className="text-[#929BA8] font-semibold">
-                  {format} rating (1-100)
-                  <input
-                    type="number"
-                    min="1"
-                    max="100"
-                    value={rating}
-                    onChange={(e) => setRating(Math.max(1, Math.min(100, Number(e.target.value))))}
-                    className="mt-1 w-full p-2.5 bg-[#181F29] border border-white/10 rounded-xl text-white focus:outline-none focus:border-[#20C878]"
-                  />
-                </label>
-              ))}
-
-              <div className="sm:col-span-2 flex flex-col gap-4">
-                <div>
-                  <h4 className="text-sm font-bold text-white">Player attribute ratings</h4>
-                  <p className="text-[11px] text-[#929BA8] mt-1">Set each skill from 1 to 100. These values power player comparisons and team analysis.</p>
-                </div>
-                {ATTRIBUTE_GROUPS.map((group) => (
-                  <fieldset key={group.title} className="border border-white/10 rounded-xl p-4">
-                    <legend className="px-2 text-xs font-bold text-[#20C878]">{group.title}</legend>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                      {group.fields.map(({ key, label }) => (
-                        <label key={key} className="text-[11px] text-[#929BA8]">{label}
-                          <input
-                            type="number"
-                            min="1"
-                            max="100"
-                            value={formAttributes[key] ?? 50}
-                            onChange={(e) => setFormAttributes((attributes) => ({
-                              ...attributes,
-                              [key]: Math.max(1, Math.min(100, Number(e.target.value))),
-                            }))}
-                            className="mt-1 w-full p-2 bg-[#181F29] border border-white/10 rounded-lg text-white focus:outline-none focus:border-[#20C878]"
-                          />
-                        </label>
-                      ))}
-                    </div>
-                  </fieldset>
-                ))}
-              </div>
-
-              <div className="flex items-center gap-2 pt-6">
-                <input
-                  type="checkbox"
-                  id="overseasCheckbox"
-                  checked={formOverseas}
-                  onChange={(e) => setFormOverseas(e.target.checked)}
-                  className="w-4 h-4 accent-[#20C878]"
-                />
-                <label htmlFor="overseasCheckbox" className="text-white font-medium cursor-pointer">
-                  Overseas / Non-Indian Player (Counts towards 4-player cap in IPL)
-                </label>
-              </div>
-
-              {formError && <p role="alert" className="sm:col-span-2 text-xs text-rose-400">{formError}</p>}
-              <div className="sm:col-span-2 flex justify-end gap-3 pt-4 border-t border-white/5">
-                <button
-                  type="button"
-                  onClick={() => setPlayerModalOpen(false)}
-                  className="px-4 py-2 text-xs text-[#929BA8] hover:text-white"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-[#20C878] hover:bg-[#1bb56c] text-[#090B0F] font-bold text-xs rounded-xl shadow-md cursor-pointer"
-                >
-                  Save Player
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

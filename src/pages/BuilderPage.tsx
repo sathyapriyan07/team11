@@ -499,7 +499,7 @@ export const BuilderPage: React.FC = () => {
       )}
 
       {/* Workspace Tabs (Lineup vs Field vs Analysis) */}
-      <div className="flex border-b border-white/5 bg-[#121720] px-4 rounded-t-2xl">
+      <div className="grid grid-cols-3 rounded-t-2xl border-b border-white/5 bg-[#121720] px-2 sm:px-4">
         {(
           [
             { id: 'lineup', label: '1. Lineup & Squad Picker' },
@@ -511,13 +511,17 @@ export const BuilderPage: React.FC = () => {
             key={tab.id}
             type="button"
             onClick={() => setActiveTab(tab.id)}
-            className={`py-3.5 px-6 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer ${
+            aria-label={tab.label}
+            className={`min-w-0 px-1 py-3.5 text-center text-[11px] font-bold leading-tight transition-all cursor-pointer sm:px-4 sm:text-sm ${
               activeTab === tab.id
-                ? 'border-[#20C878] text-[#20C878]'
-                : 'border-transparent text-[#929BA8] hover:text-white'
+                ? 'border-b-2 border-[#20C878] text-[#20C878]'
+                : 'border-b-2 border-transparent text-[#929BA8] hover:text-white'
             }`}
           >
-            {tab.label}
+            <span className="sm:hidden">
+              {tab.id === 'lineup' ? '1. Lineup' : tab.id === 'field' ? '2. Ground' : '3. Analysis'}
+            </span>
+            <span className="hidden sm:inline">{tab.label}</span>
           </button>
         ))}
       </div>

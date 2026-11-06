@@ -19,6 +19,7 @@ import { MyTeamsPage } from './pages/MyTeamsPage';
 import { ExplorePage } from './pages/ExplorePage';
 import { PosterPage } from './pages/PosterPage';
 import { AdminPage } from './pages/AdminPage';
+import { AdminPlayerFormPage } from './pages/AdminPlayerFormPage';
 
 // Scroll to top upon route change
 function ScrollToTop() {
@@ -51,6 +52,8 @@ export default function App() {
             <Route path="/my-teams" element={<MyTeamsPage />} />
             <Route path="/explore" element={<ExplorePage />} />
             <Route path="/poster" element={<PosterPage />} />
+            <Route path="/admin/players/new" element={<AdminPlayerFormPage />} />
+            <Route path="/admin/players/:playerId/edit" element={<AdminPlayerFormPage />} />
             <Route path="/admin" element={<AdminPage />} />
             {/* Fallback */}
             <Route path="*" element={<HomePage />} />
