@@ -121,6 +121,33 @@ export const CricketFieldSvg: React.FC<CricketFieldSvgProps> = ({
     };
   });
 
+  const mobileRoleGroups = [
+    {
+      label: 'Wicket Keepers',
+      icon: Shield,
+      players: fielders.filter(
+        ({ teamPlayer, player }) => teamPlayer.isWicketkeeper || player?.primaryRole === 'Wicketkeeper',
+      ),
+    },
+    {
+      label: 'Batters',
+      icon: Sparkles,
+      players: fielders.filter(
+        ({ teamPlayer, player }) => !teamPlayer.isWicketkeeper && player?.primaryRole === 'Batter',
+      ),
+    },
+    {
+      label: 'All Rounders',
+      icon: Move,
+      players: fielders.filter(({ player }) => player?.primaryRole === 'All-rounder'),
+    },
+    {
+      label: 'Bowlers',
+      icon: Crosshair,
+      players: fielders.filter(({ player }) => player?.primaryRole === 'Bowler'),
+    },
+  ].filter((group) => group.players.length > 0);
+
   const handleApplyPreset = (presetKey: 'balanced' | 'attacking' | 'defensive') => {
     setActivePreset(presetKey);
     if (!onUpdateFieldingPosition) return;
@@ -170,8 +197,109 @@ export const CricketFieldSvg: React.FC<CricketFieldSvgProps> = ({
         </div>
       </div>
 
+      {/* Mobile role-based team view */}
+      <div className="relative isolate min-h-[560px] overflow-hidden rounded-2xl border border-emerald-300/20 bg-[#078a12] px-3 py-4 shadow-2xl sm:hidden">
+        <div className="pointer-events-none absolute inset-x-3 inset-y-3 rounded-[50%] border border-emerald-200/30" />
+        <div className="pointer-events-none absolute inset-x-[12%] inset-y-[17%] rounded-[50%] border border-emerald-200/20" />
+        <div className="pointer-events-none absolute left-1/2 top-1/2 h-36 w-10 -translate-x-1/2 -translate-y-1/2 rounded-sm border-y-2 border-white/20 bg-[#bdad62]/50" />
+
+        <div className="relative z-10 flex min-h-[528px] flex-col justify-between gap-5">
+          {mobileRoleGroups.map((group) => {
+            const GroupIcon = group.icon;
+            return (
+              <section key={group.label} className="flex flex-col items-center">
+                <h3 className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-950/30 px-2.5 py-1 text-[10px] font-bold text-white shadow-sm">
+                  <GroupIcon className="h-3 w-3" />
+                  {group.label}
+                </h3>
+                <div className="grid w-full grid-cols-3 justify-items-center gap-x-1 gap-y-3">
+                  {group.players.map(({ teamPlayer, player, position }) => {
+                    const isSelected = selectedFielderId === teamPlayer.playerId;
+                    return (
+                      <button
+                        key={teamPlayer.playerId}
+                        type="button"
+                        onClick={() => editable && setSelectedFielderId(isSelected ? null : teamPlayer.playerId)}
+                        aria-pressed={isSelected}
+                        aria-label={`${player?.displayName || 'Player'}, ${position}${teamPlayer.isCaptain ? ', captain' : ''}${teamPlayer.isViceCaptain ? ', vice captain' : ''}`}
+                        className={`relative flex min-w-0 flex-col items-center rounded-xl px-1 pb-0.5 transition-transform active:scale-95 ${
+                          editable ? 'cursor-pointer' : 'cursor-default'
+                        }`}
+                      >
+                        <div
+                          className={`relative h-10 w-10 overflow-visible rounded-full border-2 bg-[#181F29] shadow-md ${
+                            isSelected ? 'border-white ring-2 ring-emerald-300' : 'border-white/80'
+                          }`}
+                        >
+                          {player?.imageUrl ? (
+                            <img
+                              src={player.imageUrl}
+                              alt=""
+                              className="h-full w-full rounded-full object-cover object-top"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <span className="flex h-full w-full items-center justify-center text-xs font-bold text-white">
+                              {`P${teamPlayer.battingOrder}`}
+                            </span>
+                          )}
+                          {(teamPlayer.isCaptain || teamPlayer.isViceCaptain) && (
+                            <span
+                              className={`absolute -right-1 -top-1 rounded-full px-1 py-0.5 text-[7px] font-extrabold leading-none text-black ${
+                                teamPlayer.isCaptain ? 'bg-amber-300' : 'bg-sky-300'
+                              }`}
+                            >
+                              {teamPlayer.isCaptain ? 'C' : 'VC'}
+                            </span>
+                          )}
+                        </div>
+                        <span className="mt-1 block w-full max-w-[86px] truncate rounded-full bg-[#181F29]/90 px-2 py-1 text-center text-[9px] font-semibold leading-none text-white">
+                          {player?.displayName || `Player ${teamPlayer.battingOrder}`}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          })}
+
+          {editable && selectedFielderId && (
+            <div className="flex items-center gap-2 rounded-xl border border-emerald-300/30 bg-[#101820]/95 p-2 text-[10px] text-white shadow-lg">
+              <label htmlFor="mobile-field-position" className="shrink-0 font-semibold">
+                Move to
+              </label>
+              <select
+                id="mobile-field-position"
+                defaultValue=""
+                onChange={(event) => {
+                  if (event.target.value) handlePositionSwap(event.target.value as FieldingPosition);
+                }}
+                className="min-w-0 flex-1 rounded-lg border border-white/10 bg-[#181F29] px-2 py-1.5 text-white"
+              >
+                <option value="" disabled>
+                  Select field position
+                </option>
+                {Object.keys(FIELD_POSITION_COORDINATES).map((position) => (
+                  <option key={position} value={position}>
+                    {position}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => setSelectedFielderId(null)}
+                className="shrink-0 rounded-lg bg-white/10 px-2 py-1.5"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Main SVG Cricket Ground */}
-      <div className="relative w-full aspect-4/3 sm:aspect-16/11 bg-[#0c131a] rounded-2xl overflow-hidden border border-white/10 shadow-2xl flex items-center justify-center">
+      <div className="relative hidden w-full aspect-4/3 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-[#0c131a] shadow-2xl sm:flex sm:aspect-16/11">
         <svg viewBox="0 0 1000 750" className="w-full h-full select-none">
           <defs>
             {/* Realistic grass radial gradient */}

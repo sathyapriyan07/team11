@@ -126,6 +126,34 @@ const EMPTY_STATS: PlayerStats = {
   stumpings: 0,
 };
 
+const STAT_FIELDS: { key: keyof PlayerStats; label: string; type: 'number' | 'text' | 'calculated' }[] = [
+  { key: 'matches', label: 'Matches', type: 'number' },
+  { key: 'innings', label: 'Innings', type: 'number' },
+  { key: 'runs', label: 'Runs', type: 'number' },
+  { key: 'highestScore', label: 'Highest score', type: 'text' },
+  { key: 'battingAverage', label: 'Batting average (auto)', type: 'calculated' },
+  { key: 'strikeRate', label: 'Strike rate', type: 'number' },
+  { key: 'centuries', label: 'Centuries', type: 'number' },
+  { key: 'fifties', label: 'Fifties', type: 'number' },
+  { key: 'wickets', label: 'Wickets', type: 'number' },
+  { key: 'bowlingAverage', label: 'Bowling average', type: 'number' },
+  { key: 'economy', label: 'Economy', type: 'number' },
+  { key: 'bestBowling', label: 'Best bowling', type: 'text' },
+  { key: 'fiveWickets', label: 'Five-wicket hauls', type: 'number' },
+  { key: 'catches', label: 'Catches', type: 'number' },
+  { key: 'stumpings', label: 'Stumpings', type: 'number' },
+];
+
+type StatsFormat = 'T20' | 'ODI' | 'TEST' | 'IPL';
+
+function withCalculatedBattingAverage(stats: PlayerStats): PlayerStats {
+  const dismissals = stats.innings || stats.matches;
+  return {
+    ...stats,
+    battingAverage: dismissals > 0 ? Number((stats.runs / dismissals).toFixed(2)) : 0,
+  };
+}
+
 function createEmptyPlayer(): Player {
   return {
     id: '',
@@ -168,6 +196,7 @@ export const AdminPlayerFormPage: React.FC = () => {
   const [formError, setFormError] = useState('');
   const [uploadMessage, setUploadMessage] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [statsFormat, setStatsFormat] = useState<StatsFormat>('T20');
 
   useEffect(() => {
     const unsubscribe = storageService.subscribe(() => {
@@ -180,7 +209,20 @@ export const AdminPlayerFormPage: React.FC = () => {
   const existingPlayer = playerId ? storageService.getPlayerById(playerId) : undefined;
 
   useEffect(() => {
-    if (existingPlayer) setForm({ ...existingPlayer, attributes: { ...EMPTY_ATTRIBUTES, ...existingPlayer.attributes } });
+    if (existingPlayer) {
+      setForm({
+        ...existingPlayer,
+        attributes: { ...EMPTY_ATTRIBUTES, ...existingPlayer.attributes },
+        stats: {
+          T20: withCalculatedBattingAverage({ ...EMPTY_STATS, ...existingPlayer.stats.T20 }),
+          ODI: withCalculatedBattingAverage({ ...EMPTY_STATS, ...existingPlayer.stats.ODI }),
+          TEST: withCalculatedBattingAverage({ ...EMPTY_STATS, ...existingPlayer.stats.TEST }),
+          ...(existingPlayer.stats.IPL
+            ? { IPL: withCalculatedBattingAverage({ ...EMPTY_STATS, ...existingPlayer.stats.IPL }) }
+            : {}),
+        },
+      });
+    }
   }, [playerId, catalogVersion]);
 
   const updateForm = <K extends keyof Player>(key: K, value: Player[K]) => {
@@ -194,6 +236,24 @@ export const AdminPlayerFormPage: React.FC = () => {
       ...current,
       formatRatings: { ...current.formatRatings, [key]: rating },
     }));
+  };
+
+  const updatePlayerStats = <K extends keyof PlayerStats>(
+    formatKey: StatsFormat,
+    key: K,
+    value: PlayerStats[K],
+  ) => {
+    setForm((current) => {
+      const currentStats = current.stats[formatKey] ?? { ...EMPTY_STATS };
+      const updatedStats = { ...currentStats, [key]: value } as PlayerStats;
+      return {
+        ...current,
+        stats: {
+          ...current.stats,
+          [formatKey]: withCalculatedBattingAverage(updatedStats),
+        },
+      };
+    });
   };
 
   const handleImageUpload = async (file?: File) => {
@@ -241,7 +301,7 @@ export const AdminPlayerFormPage: React.FC = () => {
       country: form.country.trim(),
       nationality: form.nationality.trim() || form.country.trim(),
       bio: form.bio.trim(),
-      stats: existing?.stats ?? form.stats,
+      stats: form.stats,
       teamsPlayed: existing?.teamsPlayed ?? form.teamsPlayed,
       secondaryRoles: existing?.secondaryRoles ?? form.secondaryRoles,
     };
@@ -311,7 +371,7 @@ export const AdminPlayerFormPage: React.FC = () => {
       <div className="mb-6">
         <p className="text-xs font-bold uppercase tracking-wider text-[#20C878]">Player Registry</p>
         <h1 className="mt-1 text-3xl font-extrabold text-white">{playerId ? 'Edit Player' : 'Add Player'}</h1>
-        <p className="mt-2 text-sm text-[#929BA8]">Enter player details and ratings. Career statistics can be added later.</p>
+        <p className="mt-2 text-sm text-[#929BA8]">Manage player details, ratings, images, and career statistics.</p>
       </div>
 
       <form onSubmit={handleSave} className="space-y-6">
@@ -401,6 +461,51 @@ export const AdminPlayerFormPage: React.FC = () => {
             ] as const).map(([key, label]) => (
               <label key={key} className={labelClass}>{label} rating (1–100)
                 <input type="number" min={1} max={100} required value={key === 'overallRating' ? form.overallRating : form.formatRatings[key]} onChange={(e) => updateRating(key, Number(e.target.value))} className={inputClass} />
+              </label>
+            ))}
+          </div>
+        </section>
+
+        <section className="rounded-3xl border border-white/10 bg-[#121720] p-5 sm:p-7">
+          <div className="mb-5">
+            <h2 className="text-lg font-bold text-white">Career statistics</h2>
+            <p className="mt-1 text-xs text-[#929BA8]">Enter the player’s career totals for each format. Decimal values are supported for averages, strike rate, and economy.</p>
+          </div>
+          <div className="mb-5 flex flex-wrap gap-2">
+            {(['T20', 'ODI', 'TEST', 'IPL'] as const).map((formatKey) => (
+              <button
+                key={formatKey}
+                type="button"
+                onClick={() => setStatsFormat(formatKey)}
+                className={`rounded-lg px-4 py-2 text-xs font-bold transition-colors ${
+                  statsFormat === formatKey
+                    ? 'bg-[#20C878] text-[#090B0F]'
+                    : 'bg-[#181F29] text-[#929BA8] hover:text-white'
+                }`}
+              >
+                {formatKey}
+              </button>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            {STAT_FIELDS.map(({ key, label, type }) => (
+              <label key={key} className={labelClass}>
+                {label}
+                <input
+                  type={type === 'text' ? 'text' : 'number'}
+                  min={type === 'number' ? 0 : undefined}
+                  step={type === 'number' ? 'any' : undefined}
+                  readOnly={type === 'calculated'}
+                  value={form.stats[statsFormat]?.[key] ?? EMPTY_STATS[key]}
+                  onChange={(event) => {
+                    if (type === 'number') {
+                      updatePlayerStats(statsFormat, key, Number(event.target.value));
+                    } else if (type === 'text') {
+                      updatePlayerStats(statsFormat, key, event.target.value);
+                    }
+                  }}
+                  className={`${inputClass} ${type === 'calculated' ? 'cursor-not-allowed opacity-75' : ''}`}
+                />
               </label>
             ))}
           </div>

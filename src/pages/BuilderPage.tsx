@@ -393,16 +393,16 @@ export const BuilderPage: React.FC = () => {
       </div>
 
       {/* Mode Specific Parameters Bar */}
-      <div className="flex flex-wrap items-center gap-3 p-4 bg-[#181F29] border border-white/5 rounded-2xl text-xs">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-2 rounded-2xl border border-white/5 bg-[#181F29] p-2 text-[10px] sm:gap-3 sm:p-4 sm:text-xs">
         {/* Format Selector */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex shrink-0 items-center gap-1">
           <span className="text-[#929BA8] font-bold">Format:</span>
           {(['T20', 'ODI', 'TEST'] as const).map((fmt) => (
             <button
               key={fmt}
               type="button"
               onClick={() => setFormat(fmt)}
-              className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+              className={`rounded-lg px-2 py-1 font-bold transition-all sm:px-2.5 ${
                 format === fmt
                   ? 'bg-[#20C878] text-[#090B0F]'
                   : 'bg-[#121720] text-[#929BA8] hover:text-white'
@@ -414,12 +414,12 @@ export const BuilderPage: React.FC = () => {
         </div>
 
         {/* Competition */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-[#929BA8] font-bold">Comp:</span>
+        <div className="flex min-w-0 items-center gap-1">
+          <span className="shrink-0 text-[#929BA8] font-bold">Comp:</span>
           <select
             value={selectedCompId}
             onChange={(e) => setSelectedCompId(e.target.value)}
-            className="bg-[#121720] text-white p-1.5 rounded-lg border border-white/10 focus:outline-none"
+            className="h-8 min-w-0 w-[112px] truncate rounded-lg border border-white/10 bg-[#121720] px-2 text-[10px] text-white focus:outline-none sm:w-auto sm:max-w-[220px] sm:px-2.5 sm:text-xs"
           >
             {competitions.map((c) => (
               <option key={c.id} value={c.id}>
@@ -430,12 +430,12 @@ export const BuilderPage: React.FC = () => {
         </div>
 
         {/* Season */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex shrink-0 items-center gap-1">
           <span className="text-[#929BA8] font-bold">Season:</span>
           <select
             value={selectedSeason}
             onChange={(e) => setSelectedSeason(e.target.value)}
-            className="bg-[#121720] text-white p-1.5 rounded-lg border border-white/10 focus:outline-none"
+            className="h-8 w-[76px] rounded-lg border border-white/10 bg-[#121720] px-2 text-[10px] text-white focus:outline-none sm:w-auto sm:px-2.5 sm:text-xs"
           >
             {(activeCompetition?.seasons || ['2025', '2024', 'All-Time']).map((s) => (
               <option key={s} value={s}>
@@ -447,12 +447,12 @@ export const BuilderPage: React.FC = () => {
 
         {/* Franchise Picker if Franchise Mode */}
         {currentMode === 'franchise' && (
-          <div className="flex items-center gap-1.5">
-            <span className="text-amber-400 font-bold">Franchise:</span>
+          <div className="flex min-w-0 items-center gap-1">
+            <span className="shrink-0 text-amber-400 font-bold">Franchise:</span>
             <select
               value={selectedFranchiseId}
               onChange={(e) => setSelectedFranchiseId(e.target.value)}
-              className="bg-[#121720] text-white p-1.5 rounded-lg border border-amber-400/30 focus:outline-none"
+              className="h-8 min-w-0 w-[112px] truncate rounded-lg border border-amber-400/30 bg-[#121720] px-2 text-[10px] text-white focus:outline-none sm:w-auto sm:max-w-[220px] sm:px-2.5 sm:text-xs"
             >
               {teams
                 .filter((t) => t.type === 'Franchise')
@@ -467,12 +467,12 @@ export const BuilderPage: React.FC = () => {
 
         {/* Custom Pool Picker if Custom Pool Mode */}
         {currentMode === 'custom-pool' && customPools.length > 0 && (
-          <div className="flex items-center gap-1.5">
-            <span className="text-pink-400 font-bold">Pool:</span>
+          <div className="flex min-w-0 items-center gap-1">
+            <span className="shrink-0 text-pink-400 font-bold">Pool:</span>
             <select
               value={selectedPoolId}
               onChange={(e) => setSelectedPoolId(e.target.value)}
-              className="bg-[#121720] text-white p-1.5 rounded-lg border border-pink-400/30 focus:outline-none"
+              className="h-8 min-w-0 w-[112px] truncate rounded-lg border border-pink-400/30 bg-[#121720] px-2 text-[10px] text-white focus:outline-none sm:w-auto sm:max-w-[220px] sm:px-2.5 sm:text-xs"
             >
               {customPools.map((p) => (
                 <option key={p.id} value={p.id}>

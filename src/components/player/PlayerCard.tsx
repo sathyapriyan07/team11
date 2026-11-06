@@ -27,6 +27,15 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
       : format === 'TEST'
       ? player.formatRatings.TEST
       : player.formatRatings.T20;
+  const formatStats =
+    format === 'ODI'
+      ? player.stats.ODI
+      : format === 'TEST'
+      ? player.stats.TEST
+      : player.stats.T20;
+  const battingDenominator = formatStats.innings || formatStats.matches;
+  const battingAverage =
+    battingDenominator > 0 ? Number((formatStats.runs / battingDenominator).toFixed(2)) : 0;
 
   // Role color token
   const getRoleBadgeColor = () => {
@@ -47,13 +56,13 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
   if (!compact) {
     return (
       <div
-        className={`group relative flex min-h-[216px] overflow-hidden rounded-2xl border transition-all duration-200 ${
+        className={`group relative flex min-h-[140px] overflow-hidden rounded-lg border transition-all duration-200 sm:min-h-[216px] sm:rounded-2xl ${
           isSelected
             ? 'bg-[#182420] border-[#20C878] shadow-lg shadow-[#20C878]/10'
             : 'bg-[#181F29] border-white/5 hover:border-white/20 hover:bg-[#1a2330]'
         }`}
       >
-        <div className="relative w-[42%] min-w-0 shrink-0 overflow-hidden border-b-[3px] border-[#20C878] bg-[#121720]">
+        <div className="relative w-[34%] min-w-0 shrink-0 overflow-hidden border-b-2 border-[#20C878] bg-[#121720] sm:w-[42%] sm:border-b-[3px]">
           <img
             src={player.imageUrl}
             alt={player.displayName}
@@ -62,67 +71,67 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/25 to-transparent" />
           {isSelected && (
-            <span className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-[#20C878] text-[#090B0F]">
-              <Check className="h-4 w-4 stroke-[3]" />
+            <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#20C878] text-[#090B0F] sm:right-2 sm:top-2 sm:h-6 sm:w-6">
+              <Check className="h-3.5 w-3.5 stroke-[3] sm:h-4 sm:w-4" />
             </span>
           )}
-          <div className="absolute inset-x-0 bottom-0 min-w-0 p-3">
-            <div className="mb-1 flex min-w-0 items-center gap-1.5">
-              <span className="truncate text-[10px] font-bold uppercase tracking-wider text-white/80">
+          <div className="absolute inset-x-0 bottom-0 min-w-0 p-1.5 sm:p-3">
+            <div className="mb-0.5 flex min-w-0 items-center gap-1 sm:mb-1">
+              <span className="truncate text-[7px] font-bold uppercase tracking-wide text-white/80 sm:text-[10px] sm:tracking-wider">
                 {player.country}
               </span>
               {player.careerStatus === 'Legend' && (
-                <span className="shrink-0 rounded bg-amber-400/20 px-1 py-0.5 text-[8px] font-bold uppercase text-amber-300">
+                <span className="shrink-0 rounded bg-amber-400/20 px-1 py-0.5 text-[7px] font-bold uppercase text-amber-300 sm:text-[8px]">
                   Legend
                 </span>
               )}
             </div>
-            <h4 className="truncate font-heading text-sm font-bold text-white transition-colors group-hover:text-[#20C878] sm:text-base">
+            <h4 className="truncate font-heading text-[11px] font-bold text-white transition-colors group-hover:text-[#20C878] sm:text-base">
               {player.displayName}
             </h4>
             <span
-              className={`mt-1 inline-block max-w-full truncate rounded border px-1.5 py-0.5 text-[9px] font-semibold ${getRoleBadgeColor()}`}
+              className={`mt-0.5 inline-block max-w-full truncate rounded border px-1 py-0.5 text-[7px] font-semibold sm:mt-1 sm:px-1.5 sm:text-[9px] ${getRoleBadgeColor()}`}
             >
               {player.primaryRole}
             </span>
           </div>
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col justify-between p-3 sm:p-4">
+        <div className="flex min-w-0 flex-1 flex-col justify-between p-1.5 sm:p-4">
           <div>
-            <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-2">
-              <span className="truncate text-[10px] font-semibold uppercase tracking-wider text-[#929BA8]">
+            <div className="flex items-center justify-between gap-1 border-b border-white/10 pb-0.5 sm:gap-2 sm:pb-2">
+              <span className="truncate text-[7px] font-semibold uppercase tracking-wide text-[#929BA8] sm:text-[10px] sm:tracking-wider">
                 {format} rating
               </span>
-              <span className="font-heading text-lg font-bold text-[#20C878]">
+              <span className="font-heading text-sm font-bold text-[#20C878] sm:text-lg">
                 {formatRating || player.overallRating}
               </span>
             </div>
-            <p className="mt-2 truncate text-[11px] text-[#929BA8]" title={player.specialization}>
+            <p className="mt-1 hidden truncate text-[11px] text-[#929BA8] sm:block sm:mt-2" title={player.specialization}>
               {player.specialization}
             </p>
-            <div className="mt-3 grid grid-cols-3 gap-1.5 border-y border-white/5 py-2.5 text-center">
-              <div className="min-w-0 rounded-lg bg-[#121720] px-1 py-1.5">
-                <span className="block text-[8px] uppercase text-[#929BA8] sm:text-[9px]">Bat</span>
-                <span className="text-xs font-bold text-white">{player.attributes.powerHitting}</span>
+            <div className="mt-1.5 divide-y divide-white/5 border-b border-white/5 py-0.5 sm:mt-3 sm:py-1">
+              <div className="flex items-center justify-between gap-2 py-1 text-[9px] sm:py-1.5 sm:text-xs">
+                <span className="text-[#929BA8]">Runs</span>
+                <span className="font-bold text-white">{formatStats.runs.toLocaleString()}</span>
               </div>
-              <div className="min-w-0 rounded-lg bg-[#121720] px-1 py-1.5">
-                <span className="block text-[8px] uppercase text-[#929BA8] sm:text-[9px]">Bowl</span>
-                <span className="text-xs font-bold text-white">{player.attributes.accuracy}</span>
+              <div className="flex items-center justify-between gap-2 py-1 text-[9px] sm:py-1.5 sm:text-xs">
+                <span className="text-[#929BA8]">Average</span>
+                <span className="font-bold text-white">{battingAverage}</span>
               </div>
-              <div className="min-w-0 rounded-lg bg-[#121720] px-1 py-1.5">
-                <span className="block text-[8px] uppercase text-[#929BA8] sm:text-[9px]">Field</span>
-                <span className="text-xs font-bold text-white">{player.attributes.catching}</span>
+              <div className="flex items-center justify-between gap-2 py-1 text-[9px] sm:py-1.5 sm:text-xs">
+                <span className="text-[#929BA8]">Strike rate</span>
+                <span className="font-bold text-white">{formatStats.strikeRate}</span>
               </div>
             </div>
           </div>
 
-          <div className="mt-3 flex items-center gap-2">
+          <div className="mt-1.5 flex items-center gap-1 sm:mt-3 sm:gap-2">
             {onSelect && (
               <button
                 type="button"
                 onClick={() => onSelect(player)}
-                className={`flex min-w-0 flex-1 items-center justify-center gap-1 rounded-xl px-2 py-2 text-xs font-bold transition-all ${
+                className={`flex min-w-0 flex-1 items-center justify-center gap-1 rounded-md px-1 py-1 text-[9px] font-bold transition-all sm:rounded-xl sm:px-2 sm:py-2 sm:text-xs ${
                   isSelected
                     ? 'border border-rose-500/30 bg-rose-500/20 text-rose-300 hover:bg-rose-500/30'
                     : 'bg-[#20C878] text-[#090B0F] hover:bg-[#1bb56c]'
@@ -137,9 +146,9 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
                 onClick={() => onViewDetails(player)}
                 title="View Player Profile"
                 aria-label={`View ${player.displayName} profile`}
-                className="shrink-0 rounded-xl bg-white/5 p-2 text-[#929BA8] transition-colors hover:bg-white/10 hover:text-white"
+                className="shrink-0 rounded-md bg-white/5 p-1 text-[#929BA8] transition-colors hover:bg-white/10 hover:text-white sm:rounded-xl sm:p-2"
               >
-                <Eye className="h-4 w-4" />
+                <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
               </button>
             )}
             {onCompare && (
@@ -148,9 +157,9 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
                 onClick={() => onCompare(player)}
                 title="Compare Player"
                 aria-label={`Compare ${player.displayName}`}
-                className="shrink-0 rounded-xl bg-white/5 p-2 text-[#929BA8] transition-colors hover:bg-white/10 hover:text-[#3BA7FF]"
+                className="shrink-0 rounded-md bg-white/5 p-1 text-[#929BA8] transition-colors hover:bg-white/10 hover:text-[#3BA7FF] sm:rounded-xl sm:p-2"
               >
-                <BarChart2 className="h-4 w-4" />
+                <BarChart2 className="h-3 w-3 sm:h-4 sm:w-4" />
               </button>
             )}
           </div>
