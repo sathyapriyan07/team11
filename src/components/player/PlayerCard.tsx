@@ -56,112 +56,97 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
   if (!compact) {
     return (
       <div
-        className={`group relative flex min-h-[140px] overflow-hidden rounded-lg border transition-all duration-200 sm:min-h-[216px] sm:rounded-2xl ${
+        className={`group relative flex aspect-square min-w-0 flex-col overflow-hidden rounded-xl border transition-all duration-200 sm:rounded-2xl ${
           isSelected
-            ? 'bg-[#182420] border-[#20C878] shadow-lg shadow-[#20C878]/10'
-            : 'bg-[#181F29] border-white/5 hover:border-white/20 hover:bg-[#1a2330]'
-        }`}
+            ? 'border-[#20C878]/70 shadow-lg shadow-black/30'
+            : 'border-white/10 hover:border-white/20'
+        } ${onSelect ? 'cursor-pointer' : ''}`}
+        onClick={onSelect ? () => onSelect(player) : undefined}
+        onKeyDown={onSelect ? (event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            onSelect(player);
+          }
+        } : undefined}
+        role={onSelect ? 'button' : undefined}
+        tabIndex={onSelect ? 0 : undefined}
+        aria-pressed={onSelect ? isSelected : undefined}
+        aria-label={onSelect ? `${isSelected ? 'Remove' : 'Add'} ${player.displayName} ${isSelected ? 'from' : 'to'} team` : undefined}
       >
-        <div className="relative w-[34%] min-w-0 shrink-0 overflow-hidden border-b-2 border-[#20C878] bg-[#121720] sm:w-[42%] sm:border-b-[3px]">
-          <img
+        <img
             src={player.imageUrl}
             alt={player.displayName}
             className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-105"
             loading="lazy"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/25 to-transparent" />
-          {isSelected && (
-            <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#20C878] text-[#090B0F] sm:right-2 sm:top-2 sm:h-6 sm:w-6">
-              <Check className="h-3.5 w-3.5 stroke-[3] sm:h-4 sm:w-4" />
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/25 to-transparent" />
+        <div className="relative z-10 flex h-full min-h-0 flex-col p-2 sm:p-3">
+          <div className="absolute right-2 top-2 flex items-center gap-1 sm:right-3 sm:top-3">
+            <span className="font-heading text-sm font-bold text-[#20C878] drop-shadow sm:text-base">
+              {formatRating || player.overallRating}
             </span>
-          )}
-          <div className="absolute inset-x-0 bottom-0 min-w-0 p-1.5 sm:p-3">
-            <div className="mb-0.5 flex min-w-0 items-center gap-1 sm:mb-1">
-              <span className="truncate text-[7px] font-bold uppercase tracking-wide text-white/80 sm:text-[10px] sm:tracking-wider">
-                {player.country}
+            {isSelected && (
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#20C878] text-[#090B0F] shadow-lg shadow-black/40 sm:h-6 sm:w-6">
+                <Check className="h-4 w-4 stroke-[3]" />
               </span>
-              {player.careerStatus === 'Legend' && (
-                <span className="shrink-0 rounded bg-amber-400/20 px-1 py-0.5 text-[7px] font-bold uppercase text-amber-300 sm:text-[8px]">
-                  Legend
-                </span>
-              )}
-            </div>
-            <h4 className="truncate font-heading text-[11px] font-bold text-white transition-colors group-hover:text-[#20C878] sm:text-base">
-              {player.displayName}
-            </h4>
-            <span
-              className={`mt-0.5 inline-block max-w-full truncate rounded border px-1 py-0.5 text-[7px] font-semibold sm:mt-1 sm:px-1.5 sm:text-[9px] ${getRoleBadgeColor()}`}
-            >
-              {player.primaryRole}
-            </span>
-          </div>
-        </div>
-
-        <div className="flex min-w-0 flex-1 flex-col justify-between p-1.5 sm:p-4">
-          <div>
-            <div className="flex items-center justify-between gap-1 border-b border-white/10 pb-0.5 sm:gap-2 sm:pb-2">
-              <span className="truncate text-[7px] font-semibold uppercase tracking-wide text-[#929BA8] sm:text-[10px] sm:tracking-wider">
-                {format} rating
-              </span>
-              <span className="font-heading text-sm font-bold text-[#20C878] sm:text-lg">
-                {formatRating || player.overallRating}
-              </span>
-            </div>
-            <p className="mt-1 hidden truncate text-[11px] text-[#929BA8] sm:block sm:mt-2" title={player.specialization}>
-              {player.specialization}
-            </p>
-            <div className="mt-1.5 divide-y divide-white/5 border-b border-white/5 py-0.5 sm:mt-3 sm:py-1">
-              <div className="flex items-center justify-between gap-2 py-1 text-[9px] sm:py-1.5 sm:text-xs">
-                <span className="text-[#929BA8]">Runs</span>
-                <span className="font-bold text-white">{formatStats.runs.toLocaleString()}</span>
-              </div>
-              <div className="flex items-center justify-between gap-2 py-1 text-[9px] sm:py-1.5 sm:text-xs">
-                <span className="text-[#929BA8]">Average</span>
-                <span className="font-bold text-white">{battingAverage}</span>
-              </div>
-              <div className="flex items-center justify-between gap-2 py-1 text-[9px] sm:py-1.5 sm:text-xs">
-                <span className="text-[#929BA8]">Strike rate</span>
-                <span className="font-bold text-white">{formatStats.strikeRate}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-1.5 flex items-center gap-1 sm:mt-3 sm:gap-2">
-            {onSelect && (
-              <button
-                type="button"
-                onClick={() => onSelect(player)}
-                className={`flex min-w-0 flex-1 items-center justify-center gap-1 rounded-md px-1 py-1 text-[9px] font-bold transition-all sm:rounded-xl sm:px-2 sm:py-2 sm:text-xs ${
-                  isSelected
-                    ? 'border border-rose-500/30 bg-rose-500/20 text-rose-300 hover:bg-rose-500/30'
-                    : 'bg-[#20C878] text-[#090B0F] hover:bg-[#1bb56c]'
-                }`}
-              >
-                {isSelected ? 'Remove' : <><Plus className="h-3.5 w-3.5 stroke-[2.5]" />Select</>}
-              </button>
-            )}
-            {onViewDetails && (
-              <button
-                type="button"
-                onClick={() => onViewDetails(player)}
-                title="View Player Profile"
-                aria-label={`View ${player.displayName} profile`}
-                className="shrink-0 rounded-md bg-white/5 p-1 text-[#929BA8] transition-colors hover:bg-white/10 hover:text-white sm:rounded-xl sm:p-2"
-              >
-                <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
-              </button>
             )}
             {onCompare && (
               <button
                 type="button"
-                onClick={() => onCompare(player)}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onCompare(player);
+                }}
                 title="Compare Player"
                 aria-label={`Compare ${player.displayName}`}
-                className="shrink-0 rounded-md bg-white/5 p-1 text-[#929BA8] transition-colors hover:bg-white/10 hover:text-[#3BA7FF] sm:rounded-xl sm:p-2"
+                className="shrink-0 rounded-full bg-black/35 p-1 text-white/80 transition-colors hover:bg-black/60 hover:text-[#3BA7FF] sm:p-1.5"
               >
-                <BarChart2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                <BarChart2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
               </button>
             )}
+          </div>
+
+          <div className="mt-auto min-w-0">
+            <div className="flex min-w-0 items-center gap-1">
+              <span className="truncate text-[7px] font-bold uppercase tracking-wide text-white/80 drop-shadow sm:text-[9px]">
+                {player.country}
+              </span>
+              {player.careerStatus === 'Legend' && (
+                <span className="shrink-0 rounded bg-black/45 px-1 py-0.5 text-[6px] font-bold uppercase text-amber-300 sm:text-[7px]">
+                  Legend
+                </span>
+              )}
+            </div>
+            <h4 className="truncate font-heading text-xs font-bold text-white drop-shadow transition-colors group-hover:text-[#20C878] sm:text-sm">
+              {onViewDetails ? (
+                <button type="button" onClick={(event) => {
+                  event.stopPropagation();
+                  onViewDetails(player);
+                }} className="max-w-full truncate text-left">
+                  {player.displayName}
+                </button>
+              ) : player.displayName}
+            </h4>
+            <span
+              className={`mt-0.5 inline-block max-w-full truncate rounded border bg-black/40 px-1 py-0.5 text-[7px] font-semibold sm:px-1.5 sm:text-[8px] ${getRoleBadgeColor()}`}
+            >
+              {player.primaryRole}
+            </span>
+          </div>
+
+          <div className="mt-1 grid grid-cols-3 gap-1 pt-1 text-[7px] leading-tight sm:mt-2 sm:pt-1.5 sm:text-[9px]">
+              <div className="min-w-0">
+                <span className="block text-white/75">Runs</span>
+                <span className="block truncate font-bold text-white drop-shadow">{formatStats.runs.toLocaleString()}</span>
+              </div>
+              <div className="min-w-0">
+                <span className="block text-white/75">Average</span>
+                <span className="block truncate font-bold text-white drop-shadow">{battingAverage}</span>
+              </div>
+              <div className="min-w-0">
+                <span className="block text-white/75">Strike rate</span>
+                <span className="block truncate font-bold text-white drop-shadow">{formatStats.strikeRate}</span>
+              </div>
           </div>
         </div>
       </div>

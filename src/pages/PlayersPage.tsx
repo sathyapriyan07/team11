@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { storageService } from '../services/storageService';
 import { Player, CricketFormat } from '../types/cricket';
 import { PlayerCard } from '../components/player/PlayerCard';
-import { PlayerDetailModal } from '../components/player/PlayerDetailModal';
 import { Search, Users, Filter, Sparkles, Trophy, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -14,7 +13,6 @@ export const PlayersPage: React.FC = () => {
   const [countryFilter, setCountryFilter] = useState<string>('All');
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [selectedFormat, setSelectedFormat] = useState<CricketFormat>('T20');
-  const [inspectPlayer, setInspectPlayer] = useState<Player | null>(null);
 
   useEffect(() => {
     setPlayers(storageService.getPlayers());
@@ -170,12 +168,12 @@ export const PlayersPage: React.FC = () => {
       </div>
 
       {/* Grid of Players */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-2 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {filtered.map((player) => (
           <PlayerCard
             key={player.id}
             player={player}
-            onViewDetails={setInspectPlayer}
+            onViewDetails={(player) => navigate(`/players/${player.id}`, { state: { returnTo: '/players' } })}
             onCompare={handleCompare}
             format={selectedFormat}
             compact={false}
@@ -183,11 +181,6 @@ export const PlayersPage: React.FC = () => {
         ))}
       </div>
 
-      {/* Modal */}
-      <PlayerDetailModal
-        player={inspectPlayer}
-        onClose={() => setInspectPlayer(null)}
-      />
     </div>
   );
 };

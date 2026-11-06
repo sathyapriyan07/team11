@@ -97,10 +97,10 @@ export const PlayerPicker: React.FC<PlayerPickerProps> = ({
   }, [allPlayers, allowedFranchiseId, searchTerm, roleFilter, countryFilter, statusFilter, sortBy, format]);
 
   return (
-    <div className="flex flex-col gap-4 bg-[#121720] border border-white/10 rounded-2xl p-4 shadow-xl">
+    <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-[#121720] p-3 shadow-xl sm:gap-4 sm:p-4">
       {/* Top Filter Bar */}
       <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center justify-between gap-2 sm:gap-3">
           {/* Search Input */}
           <div className="relative flex-1">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#929BA8]" />
@@ -109,7 +109,7 @@ export const PlayerPicker: React.FC<PlayerPickerProps> = ({
               placeholder="Search players by name, specialization, or country..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-[#181F29] border border-white/10 rounded-xl text-xs sm:text-sm text-white placeholder-[#929BA8] focus:outline-none focus:border-[#20C878] transition-colors"
+              className="w-full min-w-0 rounded-xl border border-white/10 bg-[#181F29] py-2 pl-10 pr-2 text-[11px] text-white placeholder-[#929BA8] transition-colors focus:border-[#20C878] focus:outline-none sm:py-2 sm:pr-4 sm:text-sm"
             />
           </div>
 
@@ -137,13 +137,13 @@ export const PlayerPicker: React.FC<PlayerPickerProps> = ({
         </div>
 
         {/* Roles Pills Filter */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {(['All', 'Batter', 'All-rounder', 'Bowler', 'Wicketkeeper'] as const).map((role) => (
             <button
               key={role}
               type="button"
               onClick={() => setRoleFilter(role)}
-              className={`px-3 py-1.5 rounded-xl font-semibold whitespace-nowrap transition-all ${
+              className={`shrink-0 rounded-xl px-3 py-1.5 font-semibold whitespace-nowrap transition-all ${
                 roleFilter === role
                   ? 'bg-[#20C878] text-[#090B0F] shadow-sm shadow-[#20C878]/20'
                   : 'bg-[#181F29] text-[#929BA8] hover:text-white hover:bg-[#202938]'
@@ -159,12 +159,12 @@ export const PlayerPicker: React.FC<PlayerPickerProps> = ({
         </div>
 
         {/* Secondary Filters: Country, Status, Sort */}
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          {/* Country */}
+        <div className="grid grid-cols-2 gap-2 text-xs sm:flex sm:flex-wrap sm:items-center">
           <select
+            aria-label="Filter by country"
             value={countryFilter}
             onChange={(e) => setCountryFilter(e.target.value)}
-            className="bg-[#181F29] text-[#F5F7FA] border border-white/10 rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-[#20C878]"
+            className="h-9 w-full min-w-0 rounded-xl border border-white/10 bg-[#181F29] px-2 text-[11px] text-[#F5F7FA] focus:border-[#20C878] focus:outline-none sm:h-auto sm:w-auto sm:px-2.5 sm:py-1.5 sm:text-xs"
           >
             {countries.map((c) => (
               <option key={c} value={c}>
@@ -173,32 +173,33 @@ export const PlayerPicker: React.FC<PlayerPickerProps> = ({
             ))}
           </select>
 
-          {/* Status */}
           <select
+            aria-label="Filter by player status"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-[#181F29] text-[#F5F7FA] border border-white/10 rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-[#20C878]"
+            className="h-9 w-full min-w-0 rounded-xl border border-white/10 bg-[#181F29] px-2 text-[11px] text-[#F5F7FA] focus:border-[#20C878] focus:outline-none sm:h-auto sm:w-auto sm:px-2.5 sm:py-1.5 sm:text-xs"
           >
             <option value="All">All Statuses</option>
             <option value="Active">Active Only</option>
             <option value="Legend">Legends Only</option>
           </select>
 
-          {/* Sort By */}
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
-            className="bg-[#181F29] text-[#F5F7FA] border border-white/10 rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-[#20C878] ml-auto"
-          >
-            <option value="rating">Sort by Rating</option>
-            <option value="name">Sort by Name</option>
-            <option value="runs">Sort by Runs</option>
-            <option value="wickets">Sort by Wickets</option>
-          </select>
-
-          <span className="text-[11px] text-[#929BA8] ml-2">
-            {filteredPlayers.length} available
-          </span>
+          <div className="col-span-2 flex min-w-0 items-center justify-between gap-2 sm:ml-auto sm:col-span-1 sm:justify-start">
+            <select
+              aria-label="Sort players"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as 'rating' | 'name' | 'runs' | 'wickets')}
+              className="h-9 min-w-0 rounded-xl border border-white/10 bg-[#181F29] px-2 text-[11px] text-[#F5F7FA] focus:border-[#20C878] focus:outline-none sm:h-auto sm:px-2.5 sm:py-1.5 sm:text-xs"
+            >
+              <option value="rating">Sort by Rating</option>
+              <option value="name">Sort by Name</option>
+              <option value="runs">Sort by Runs</option>
+              <option value="wickets">Sort by Wickets</option>
+            </select>
+            <span className="shrink-0 text-[11px] text-[#929BA8]">
+              {filteredPlayers.length} available
+            </span>
+          </div>
         </div>
       </div>
 
@@ -211,7 +212,7 @@ export const PlayerPicker: React.FC<PlayerPickerProps> = ({
           </p>
         </div>
       ) : viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 max-h-[75vh] overflow-y-auto pr-1">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-3 xl:grid-cols-3 max-h-[75vh] overflow-y-auto pr-1">
           {filteredPlayers.map((player) => (
             <PlayerCard
               key={player.id}

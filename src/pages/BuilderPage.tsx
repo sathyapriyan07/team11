@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useSearchParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import {
   BuilderMode,
   UserTeam,
@@ -19,7 +19,6 @@ import { SubstitutesPanel } from '../components/builder/SubstitutesPanel';
 import { PlayerPicker } from '../components/builder/PlayerPicker';
 import { CricketFieldSvg } from '../components/cricket-field/CricketFieldSvg';
 import { TeamAnalysisPanel } from '../components/builder/TeamAnalysisPanel';
-import { PlayerDetailModal } from '../components/player/PlayerDetailModal';
 import {
   Sliders,
   Sparkles,
@@ -38,6 +37,7 @@ export const BuilderPage: React.FC = () => {
   const { mode: routeMode } = useParams<{ mode: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const currentMode: BuilderMode = (
     ['franchise', 'dream', 'all-time', 'international', 'custom-pool', 'auto'].includes(routeMode || '')
@@ -68,8 +68,8 @@ export const BuilderPage: React.FC = () => {
 
   // UI Tabs & Inspect
   const [activeTab, setActiveTab] = useState<'lineup' | 'field' | 'analysis'>('lineup');
-  const [inspectPlayer, setInspectPlayer] = useState<Player | null>(null);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
+  const [pendingProfileSelection, setPendingProfileSelection] = useState<string | null>(null);
 
   // Load Initial and handle external team ID
   useEffect(() => {
@@ -217,6 +217,20 @@ export const BuilderPage: React.FC = () => {
       setSelectedPlayers([...selectedPlayers, newPlayer]);
     }
   };
+
+  useEffect(() => {
+    const state = location.state as { selectPlayerId?: string } | null;
+    if (!state?.selectPlayerId) return;
+    setPendingProfileSelection(state.selectPlayerId);
+    navigate(`${location.pathname}${location.search}`, { replace: true, state: null });
+  }, [location.key, allPlayers]);
+
+  useEffect(() => {
+    if (!pendingProfileSelection) return;
+    const player = allPlayers.find((item) => item.id === pendingProfileSelection);
+    if (player) handleTogglePlayer(player);
+    setPendingProfileSelection(null);
+  }, [pendingProfileSelection, allPlayers]);
 
   const handleSetCaptain = (playerId: string) => {
     setSelectedPlayers((prev) =>
@@ -539,7 +553,15 @@ export const BuilderPage: React.FC = () => {
               onSetViceCaptain={handleSetViceCaptain}
               onSetWicketkeeper={handleSetWicketkeeper}
               onMovePlayer={handleMovePlayer}
-              onViewPlayer={setInspectPlayer}
+              onViewPlayer={(player) =>
+                navigate(`/players/${player.id}`, {
+                  state: {
+                    returnTo: `${location.pathname}${location.search}`,
+                    selectForXI: true,
+                    isInTeam: selectedPlayers.some((selected) => selected.playerId === player.id),
+                  },
+                })
+              }
             />
 
             <SubstitutesPanel
@@ -560,7 +582,15 @@ export const BuilderPage: React.FC = () => {
               allPlayers={eligiblePlayers}
               selectedPlayerIds={selectedPlayers.map((p) => p.playerId)}
               onTogglePlayer={handleTogglePlayer}
-              onViewPlayer={setInspectPlayer}
+              onViewPlayer={(player) =>
+                navigate(`/players/${player.id}`, {
+                  state: {
+                    returnTo: `${location.pathname}${location.search}`,
+                    selectForXI: true,
+                    isInTeam: selectedPlayers.some((selected) => selected.playerId === player.id),
+                  },
+                })
+              }
               format={format}
             />
           </div>
@@ -586,13 +616,6 @@ export const BuilderPage: React.FC = () => {
         </div>
       )}
 
-      {/* Player Inspect Modal */}
-      <PlayerDetailModal
-        player={inspectPlayer}
-        onClose={() => setInspectPlayer(null)}
-        onSelectForXI={handleTogglePlayer}
-        isInTeam={inspectPlayer ? selectedPlayers.some((p) => p.playerId === inspectPlayer.id) : false}
-      />
     </div>
   );
 };

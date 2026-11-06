@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Sparkles,
   Sliders,
@@ -19,12 +19,11 @@ import { storageService } from '../services/storageService';
 import { UserTeam, Player } from '../types/cricket';
 import { CricketFieldSvg } from '../components/cricket-field/CricketFieldSvg';
 import { PlayerCard } from '../components/player/PlayerCard';
-import { PlayerDetailModal } from '../components/player/PlayerDetailModal';
 
 export const HomePage: React.FC = () => {
+  const navigate = useNavigate();
   const [featuredTeams, setFeaturedTeams] = useState<UserTeam[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
-  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
 
   useEffect(() => {
     setFeaturedTeams(storageService.getUserTeams().slice(0, 3));
@@ -301,7 +300,7 @@ export const HomePage: React.FC = () => {
             <PlayerCard
               key={player.id}
               player={player}
-              onViewDetails={setSelectedPlayer}
+              onViewDetails={(player) => navigate(`/players/${player.id}`, { state: { returnTo: '/' } })}
               compact={false}
             />
           ))}
@@ -378,11 +377,6 @@ export const HomePage: React.FC = () => {
         </section>
       )}
 
-      {/* Player Details Modal */}
-      <PlayerDetailModal
-        player={selectedPlayer}
-        onClose={() => setSelectedPlayer(null)}
-      />
     </div>
   );
 };

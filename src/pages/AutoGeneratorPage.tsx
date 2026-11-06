@@ -11,7 +11,6 @@ import { RulesValidationBar } from '../components/builder/RulesValidationBar';
 import { validateTeamRules } from '../engines/rulesEngine';
 import { analyzeTeam } from '../engines/analysisEngine';
 import { TeamAnalysisPanel } from '../components/builder/TeamAnalysisPanel';
-import { PlayerDetailModal } from '../components/player/PlayerDetailModal';
 import {
   Sparkles,
   Sliders,
@@ -37,7 +36,6 @@ export const AutoGeneratorPage: React.FC = () => {
 
   // Generated Result
   const [generatedLineup, setGeneratedLineup] = useState<any>(null);
-  const [inspectPlayer, setInspectPlayer] = useState<Player | null>(null);
 
   useEffect(() => {
     const list = storageService.getPlayers();
@@ -297,7 +295,7 @@ export const AutoGeneratorPage: React.FC = () => {
               onSetViceCaptain={() => {}}
               onSetWicketkeeper={() => {}}
               onMovePlayer={() => {}}
-              onViewPlayer={setInspectPlayer}
+              onViewPlayer={(player) => navigate(`/players/${player.id}`, { state: { returnTo: '/generator' } })}
             />
 
             {/* Tactical Metrics & Bench */}
@@ -308,11 +306,6 @@ export const AutoGeneratorPage: React.FC = () => {
         </div>
       )}
 
-      {/* Player Inspect Modal */}
-      <PlayerDetailModal
-        player={inspectPlayer}
-        onClose={() => setInspectPlayer(null)}
-      />
     </div>
   );
 };

@@ -226,20 +226,16 @@ export const CricketFieldSvg: React.FC<CricketFieldSvgProps> = ({
                           editable ? 'cursor-pointer' : 'cursor-default'
                         }`}
                       >
-                        <div
-                          className={`relative h-10 w-10 overflow-visible rounded-full border-2 bg-[#181F29] shadow-md ${
-                            isSelected ? 'border-white ring-2 ring-emerald-300' : 'border-white/80'
-                          }`}
-                        >
+                        <div className={`relative h-14 w-12 overflow-visible ${isSelected ? 'drop-shadow-[0_0_5px_rgba(167,243,208,0.9)]' : ''}`}>
                           {player?.imageUrl ? (
                             <img
                               src={player.imageUrl}
                               alt=""
-                              className="h-full w-full rounded-full object-cover object-top"
+                              className="h-full w-full object-contain object-bottom"
                               loading="lazy"
                             />
                           ) : (
-                            <span className="flex h-full w-full items-center justify-center text-xs font-bold text-white">
+                            <span className="flex h-full w-full items-end justify-center pb-1 text-xs font-bold text-white">
                               {`P${teamPlayer.battingOrder}`}
                             </span>
                           )}
@@ -253,7 +249,7 @@ export const CricketFieldSvg: React.FC<CricketFieldSvgProps> = ({
                             </span>
                           )}
                         </div>
-                        <span className="mt-1 block w-full max-w-[86px] truncate rounded-full bg-[#181F29]/90 px-2 py-1 text-center text-[9px] font-semibold leading-none text-white">
+                        <span className="block w-full max-w-[86px] truncate rounded-full bg-[#181F29]/90 px-2 py-1 text-center text-[9px] font-semibold leading-none text-white">
                           {player?.displayName || `Player ${teamPlayer.battingOrder}`}
                         </span>
                       </button>

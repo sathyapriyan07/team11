@@ -1,26 +1,38 @@
-import React, { useState } from 'react';
-import { Player } from '../../types/cricket';
-import { X, Award, Shield, Activity, BarChart3, User, Globe, Trophy } from 'lucide-react';
-
-interface PlayerDetailModalProps {
-  player: Player | null;
-  onClose: () => void;
-  onSelectForXI?: (player: Player) => void;
-  isInTeam?: boolean;
-}
+import React, { useEffect, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Player } from '../types/cricket';
+import { ArrowLeft, Activity, BarChart3, User, Trophy } from 'lucide-react';
+import { storageService } from '../services/storageService';
 
 type TabType = 'overview' | 'stats' | 'attributes' | 'teams';
 
-export const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
-  player,
-  onClose,
-  onSelectForXI,
-  isInTeam = false,
-}) => {
+export const PlayerDetailPage: React.FC = () => {
+  const { playerId } = useParams<{ playerId: string }>();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [player, setPlayer] = useState<Player | undefined>(() =>
+    playerId ? storageService.getPlayerById(playerId) : undefined,
+  );
+  const navigationState = location.state as { returnTo?: string; selectForXI?: boolean; isInTeam?: boolean } | null;
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [statFormat, setStatFormat] = useState<'IPL' | 'T20' | 'ODI' | 'TEST'>('IPL');
 
-  if (!player) return null;
+  useEffect(() => {
+    const refreshPlayer = () => setPlayer(playerId ? storageService.getPlayerById(playerId) : undefined);
+    refreshPlayer();
+    return storageService.subscribe(refreshPlayer);
+  }, [playerId]);
+
+  if (!player) {
+    return (
+      <div className="mx-auto max-w-5xl px-4 py-12">
+        <button type="button" onClick={() => navigate('/players')} className="inline-flex items-center gap-2 text-sm text-[#929BA8] hover:text-white">
+          <ArrowLeft className="h-4 w-4" /> Back to players
+        </button>
+        <p role="alert" className="mt-8 text-rose-400">Player not found.</p>
+      </div>
+    );
+  }
 
   const currentStats =
     statFormat === 'IPL'
@@ -32,35 +44,36 @@ export const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
       : player.stats.T20;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200">
-      <div className="relative w-full max-w-3xl bg-[#121720] border border-white/10 rounded-2xl shadow-2xl overflow-hidden my-8">
+    <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
+      <div className="relative w-full overflow-hidden rounded-2xl border border-white/10 bg-[#121720] shadow-2xl">
         {/* Header Cover Bar */}
-        <div className="relative h-32 sm:h-40 bg-gradient-to-r from-[#182420] via-[#1b2f28] to-[#142334] p-6 flex items-end justify-between">
-          <div className="absolute top-4 right-4 flex items-center gap-2">
-            {onSelectForXI && (
+        <div className="relative flex min-h-40 items-end justify-between bg-gradient-to-r from-[#182420] via-[#1b2f28] to-[#142334] p-4 pt-12 sm:min-h-48 sm:p-6">
+          <div className="absolute right-3 top-3 flex items-center gap-2 sm:right-4 sm:top-4">
+            {navigationState?.selectForXI && (
               <button
                 type="button"
-                onClick={() => onSelectForXI(player)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-md ${
-                  isInTeam
-                    ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30 hover:bg-rose-500/30'
+                onClick={() => navigate(navigationState.returnTo || '/players', { state: { selectPlayerId: player.id } })}
+                className={`rounded-xl px-3 py-2 text-xs font-bold shadow-md transition-colors ${
+                  navigationState.isInTeam
+                    ? 'border border-rose-500/30 bg-rose-500/20 text-rose-300 hover:bg-rose-500/30'
                     : 'bg-[#20C878] text-[#090B0F] hover:bg-[#1bb56c]'
                 }`}
               >
-                {isInTeam ? 'Remove from Lineup' : '+ Select for XI'}
+                {navigationState.isInTeam ? 'Remove from XI' : '+ Select for XI'}
               </button>
             )}
             <button
               type="button"
-              onClick={onClose}
-              className="p-1.5 rounded-full bg-black/40 hover:bg-black/60 text-white transition-colors"
+              onClick={() => navigate(navigationState?.returnTo || '/players')}
+              aria-label="Back"
+              className="rounded-full bg-black/40 p-2 text-white transition-colors hover:bg-black/60"
             >
-              <X className="w-5 h-5" />
+              <ArrowLeft className="h-5 w-5" />
             </button>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden border-2 border-[#20C878] bg-[#090B0F] shadow-xl shrink-0 -mb-8">
+          <div className="flex min-w-0 items-end gap-4">
+            <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl border-2 border-[#20C878] bg-[#090B0F] shadow-xl sm:-mb-8 sm:h-24 sm:w-24">
               <img
                 src={player.imageUrl}
                 alt={player.displayName}
@@ -78,7 +91,7 @@ export const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
                   </span>
                 )}
               </div>
-              <h2 className="text-xl sm:text-2xl font-bold font-heading text-white">
+              <h2 className="mt-1 line-clamp-2 text-lg font-bold font-heading text-white sm:text-2xl">
                 {player.fullName}
               </h2>
               <p className="text-xs text-[#929BA8]">{player.specialization}</p>
@@ -95,7 +108,7 @@ export const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
         </div>
 
         {/* Modal Navigation Tabs */}
-        <div className="flex border-b border-white/5 bg-[#181F29] px-6 pt-8">
+        <div className="flex overflow-x-auto border-b border-white/5 bg-[#181F29] px-2 pt-2 sm:px-6 sm:pt-8">
           {(
             [
               { id: 'overview', label: 'Overview', icon: User },
@@ -110,7 +123,7 @@ export const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 py-3 px-4 text-xs font-semibold border-b-2 transition-all ${
+                className={`flex shrink-0 items-center gap-2 whitespace-nowrap px-3 py-3 text-xs font-semibold border-b-2 transition-all sm:px-4 ${
                   activeTab === tab.id
                     ? 'border-[#20C878] text-[#20C878]'
                     : 'border-transparent text-[#929BA8] hover:text-white'
@@ -124,7 +137,7 @@ export const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
         </div>
 
         {/* Tab Content */}
-        <div className="p-6 max-h-[60vh] overflow-y-auto">
+        <div className="min-h-[420px] p-4 sm:p-6">
           {activeTab === 'overview' && (
             <div className="flex flex-col gap-6">
               {/* Bio */}
