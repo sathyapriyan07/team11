@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-main: #090B0F;
+    --bg-secondary: #121720;
+    --bg-card: #181F29;
+    --accent-primary: #20C878;
+    --accent-secondary: #3BA7FF;
+  }
+
+  body {
+    background-color: #090B0F;
+    color: #F5F7FA;
+    font-family: 'Montserrat', sans-serif;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4, .font-heading {
+    font-family: 'Montserrat', sans-serif;
+  }
+}
+
+/* Custom modern sleek scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #090B0F;
+}
+::-webkit-scrollbar-thumb {
+  background: #242f40;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #20C878;
+}
+
+/* Range input styling */
+input[type="range"] {
+  accent-color: #20C878;
+}
