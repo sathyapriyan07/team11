@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { storageService } from '../services/storageService';
-import { Player, CricketFormat } from '../types/cricket';
+import { Player, PlayerRole, CricketFormat } from '../types/cricket';
 import { PlayerCard } from '../components/player/PlayerCard';
-import { Search, Users, Filter, Sparkles, Trophy, Plus } from 'lucide-react';
+import { Search, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const PlayersPage: React.FC = () => {
@@ -58,6 +58,22 @@ export const PlayersPage: React.FC = () => {
         return (bR || b.overallRating) - (aR || a.overallRating);
       });
   }, [players, searchTerm, roleFilter, countryFilter, statusFilter, selectedFormat]);
+
+  const groupedPlayers = useMemo(() => {
+    const categories: { role: PlayerRole; title: string; icon: string }[] = [
+      { role: 'Wicketkeeper', title: 'Wicketkeepers', icon: '🧤' },
+      { role: 'Batter', title: 'Batters', icon: '🏏' },
+      { role: 'All-rounder', title: 'All-rounders', icon: '⚡' },
+      { role: 'Bowler', title: 'Bowlers', icon: '🎯' },
+    ];
+
+    return categories
+      .map((category) => ({
+        ...category,
+        players: filtered.filter((player) => player.primaryRole === category.role),
+      }))
+      .filter((category) => category.players.length > 0);
+  }, [filtered]);
 
   const handleCompare = (player: Player) => {
     navigate(`/compare?player1=${player.id}`);
@@ -167,20 +183,43 @@ export const PlayersPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Grid of Players */}
-      <div className="grid grid-cols-2 gap-2 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {filtered.map((player) => (
-          <PlayerCard
-            key={player.id}
-            player={player}
-            onViewDetails={(player) => navigate(`/players/${player.id}`, { state: { returnTo: '/players' } })}
-            onCompare={handleCompare}
-            format={selectedFormat}
-            compact={false}
-          />
-        ))}
-      </div>
-
+      {/* Players grouped by primary role */}
+      {groupedPlayers.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-white/10 bg-[#121720] p-10 text-center">
+          <p className="text-sm font-semibold text-white">No players found</p>
+          <p className="mt-1 text-xs text-[#929BA8]">Try changing your search or filters.</p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-8">
+          {groupedPlayers.map((category) => (
+            <section key={category.role} aria-labelledby={`players-${category.role}`}>
+              <div className="mb-3 flex items-center justify-between border-b border-white/10 pb-2">
+                <h2 id={`players-${category.role}`} className="flex items-center gap-2 text-base font-bold text-white sm:text-lg">
+                  <span aria-hidden="true">{category.icon}</span>
+                  {category.title}
+                </h2>
+                <span className="text-xs font-medium text-[#929BA8]">
+                  {category.players.length} {category.players.length === 1 ? 'player' : 'players'}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {category.players.map((player) => (
+                  <PlayerCard
+                    key={player.id}
+                    player={player}
+                    onViewDetails={(selectedPlayer) =>
+                      navigate(`/players/${selectedPlayer.id}`, { state: { returnTo: '/players' } })
+                    }
+                    onCompare={handleCompare}
+                    format={selectedFormat}
+                    compact={false}
+                  />
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
