@@ -1,8 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, ImagePlus, Save } from 'lucide-react';
+import { ArrowLeft, ImagePlus, Save, Trash2, X } from 'lucide-react';
 import { storageService } from '../services/storageService';
-import { uploadPlayerImage } from '../services/supabaseClient';
+import {
+  deletePlayerImage,
+  isManagedPlayerImageUrl,
+  uploadCountryFlag,
+  uploadPlayerImage,
+} from '../services/supabaseClient';
 import {
   BattingHand,
   BowlingStyle,
@@ -11,6 +16,7 @@ import {
   PlayerRole,
   PlayerStats,
   PlayerSpecialization,
+  TeamEntity,
 } from '../types/cricket';
 
 const EMPTY_ATTRIBUTES: PlayerAttributes = {
@@ -190,17 +196,23 @@ export const AdminPlayerFormPage: React.FC = () => {
   const { playerId } = useParams<{ playerId: string }>();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const flagFileInputRef = useRef<HTMLInputElement>(null);
+  const skipPlayerReloadRef = useRef(false);
   const [form, setForm] = useState<Player>(createEmptyPlayer);
+  const [availableTeams, setAvailableTeams] = useState<TeamEntity[]>(() => storageService.getTeams());
   const [cloudStatus, setCloudStatus] = useState(storageService.getCloudStorageStatus());
   const [catalogVersion, setCatalogVersion] = useState(0);
   const [formError, setFormError] = useState('');
   const [uploadMessage, setUploadMessage] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [flagUploadMessage, setFlagUploadMessage] = useState('');
+  const [uploadingFlag, setUploadingFlag] = useState(false);
   const [statsFormat, setStatsFormat] = useState<StatsFormat>('T20');
 
   useEffect(() => {
     const unsubscribe = storageService.subscribe(() => {
       setCloudStatus(storageService.getCloudStorageStatus());
+      setAvailableTeams(storageService.getTeams());
       setCatalogVersion((version) => version + 1);
     });
     return unsubscribe;
@@ -210,6 +222,10 @@ export const AdminPlayerFormPage: React.FC = () => {
 
   useEffect(() => {
     if (existingPlayer) {
+      if (skipPlayerReloadRef.current) {
+        skipPlayerReloadRef.current = false;
+        return;
+      }
       setForm({
         ...existingPlayer,
         attributes: { ...EMPTY_ATTRIBUTES, ...existingPlayer.attributes },
@@ -227,6 +243,15 @@ export const AdminPlayerFormPage: React.FC = () => {
 
   const updateForm = <K extends keyof Player>(key: K, value: Player[K]) => {
     setForm((current) => ({ ...current, [key]: value }));
+  };
+
+  const togglePlayerTeam = (teamId: string) => {
+    setForm((current) => ({
+      ...current,
+      teamsPlayed: current.teamsPlayed.includes(teamId)
+        ? current.teamsPlayed.filter((id) => id !== teamId)
+        : [...current.teamsPlayed, teamId],
+    }));
   };
 
   const updateRating = (key: 'overallRating' | 'T20' | 'ODI' | 'TEST', value: number) => {
@@ -280,6 +305,76 @@ export const AdminPlayerFormPage: React.FC = () => {
     }
   };
 
+  const handleFlagUpload = async (file?: File) => {
+    if (!file) return;
+    setFlagUploadMessage('');
+    if (!cloudStatus.configured) {
+      setFlagUploadMessage('Configure Supabase URL and anon key to upload images.');
+      return;
+    }
+    if (!cloudStatus.isAdmin) {
+      setFlagUploadMessage('Sign in as an authorized admin on the Admin page before uploading.');
+      return;
+    }
+
+    setUploadingFlag(true);
+    try {
+      updateForm('countryFlagUrl', await uploadCountryFlag(file));
+      setFlagUploadMessage('Flag uploaded. Save the player to keep this image.');
+    } catch (error) {
+      setFlagUploadMessage(error instanceof Error ? error.message : 'Flag upload failed.');
+    } finally {
+      setUploadingFlag(false);
+      if (flagFileInputRef.current) flagFileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveImage = (field: 'imageUrl' | 'countryFlagUrl', label: string) => {
+    updateForm(field, '');
+    if (field === 'imageUrl') setUploadMessage(`${label} removed from the form. Save the player to apply.`);
+    else setFlagUploadMessage(`${label} removed from the form. Save the player to apply.`);
+  };
+
+  const handleDeleteUploadedImage = async (
+    field: 'imageUrl' | 'countryFlagUrl',
+    label: string,
+  ) => {
+    const imageUrl = form[field];
+    if (!imageUrl || !isManagedPlayerImageUrl(imageUrl)) return;
+    if (!window.confirm(`Permanently delete this ${label.toLowerCase()} from the app’s image storage? This cannot be undone.`)) {
+      return;
+    }
+    if (!cloudStatus.configured || !cloudStatus.isAdmin) {
+      const message = 'Sign in as an authorized admin with Supabase configured before deleting uploaded files.';
+      if (field === 'imageUrl') setUploadMessage(message);
+      else setFlagUploadMessage(message);
+      return;
+    }
+
+    if (field === 'imageUrl') setUploading(true);
+    else setUploadingFlag(true);
+    try {
+      await deletePlayerImage(imageUrl);
+
+      const savedPlayer = playerId ? storageService.getPlayerById(playerId) : undefined;
+      if (savedPlayer?.[field] === imageUrl) {
+        skipPlayerReloadRef.current = true;
+        storageService.savePlayer({ ...savedPlayer, [field]: '' });
+      }
+      setForm((current) => ({ ...current, [field]: '' }));
+      const message = `${label} permanently deleted from storage.`;
+      if (field === 'imageUrl') setUploadMessage(message);
+      else setFlagUploadMessage(message);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : `${label} deletion failed.`;
+      if (field === 'imageUrl') setUploadMessage(message);
+      else setFlagUploadMessage(message);
+    } finally {
+      if (field === 'imageUrl') setUploading(false);
+      else setUploadingFlag(false);
+    }
+  };
+
   const handleSave = (event: React.FormEvent) => {
     event.preventDefault();
     setFormError('');
@@ -302,12 +397,12 @@ export const AdminPlayerFormPage: React.FC = () => {
       nationality: form.nationality.trim() || form.country.trim(),
       bio: form.bio.trim(),
       stats: form.stats,
-      teamsPlayed: existing?.teamsPlayed ?? form.teamsPlayed,
+      teamsPlayed: form.teamsPlayed,
       secondaryRoles: existing?.secondaryRoles ?? form.secondaryRoles,
     };
 
     storageService.savePlayer(saved);
-    navigate('/admin');
+    navigate('/admin', { state: { adminTab: 'players' } });
   };
 
   if (playerId && !existingPlayer && cloudStatus.state === 'loading') {
@@ -429,6 +524,33 @@ export const AdminPlayerFormPage: React.FC = () => {
         </section>
 
         <section className="rounded-3xl border border-white/10 bg-[#121720] p-5 sm:p-7">
+          <h2 className="mb-2 text-lg font-bold text-white">Associated teams &amp; franchises</h2>
+          <p className="mb-5 text-xs text-[#929BA8]">Select the teams and national sides this player has represented. These appear on the player profile.</p>
+          {availableTeams.length > 0 ? (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {availableTeams.map((team) => (
+                <label key={team.id} className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/10 bg-[#181F29] p-3 text-sm text-white transition-colors hover:border-[#20C878]/50">
+                  <input
+                    type="checkbox"
+                    checked={form.teamsPlayed.includes(team.id)}
+                    onChange={() => togglePlayerTeam(team.id)}
+                    className="h-4 w-4 accent-[#20C878]"
+                  />
+                  <span className="min-w-0">
+                    <span className="block truncate font-semibold">{team.name}</span>
+                    <span className="block text-xs text-[#929BA8]">{team.type} · {team.code}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          ) : (
+            <p className="rounded-xl border border-dashed border-white/10 p-4 text-sm text-[#929BA8]">
+              No teams are available. Add teams in the Admin team management section first.
+            </p>
+          )}
+        </section>
+
+        <section className="rounded-3xl border border-white/10 bg-[#121720] p-5 sm:p-7">
           <h2 className="mb-5 text-lg font-bold text-white">Player image</h2>
           <div className="grid gap-5 md:grid-cols-[1fr_auto]">
             <div>
@@ -442,11 +564,58 @@ export const AdminPlayerFormPage: React.FC = () => {
                 </button>
                 <span className="text-xs text-[#929BA8]">JPEG, PNG, WebP, or GIF · up to 5 MB</span>
               </div>
+              {form.imageUrl && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button type="button" onClick={() => handleRemoveImage('imageUrl', 'Player image')} className="inline-flex items-center gap-1.5 rounded-lg bg-white/5 px-3 py-2 text-xs font-semibold text-[#C0C7D1] hover:bg-white/10">
+                    <X className="h-3.5 w-3.5" /> Remove image
+                  </button>
+                  {isManagedPlayerImageUrl(form.imageUrl) && (
+                    <button type="button" onClick={() => void handleDeleteUploadedImage('imageUrl', 'Player image')} disabled={uploading} className="inline-flex items-center gap-1.5 rounded-lg bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-300 hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-50">
+                      <Trash2 className="h-3.5 w-3.5" /> Delete uploaded file
+                    </button>
+                  )}
+                </div>
+              )}
               {uploadMessage && <p role="status" className="mt-3 text-xs text-[#20C878]">{uploadMessage}</p>}
               {!cloudStatus.configured && <p className="mt-2 text-xs text-amber-300">Configure Supabase to enable file uploads.</p>}
               {cloudStatus.configured && !cloudStatus.isAdmin && <p className="mt-2 text-xs text-amber-300">Admin sign-in is required for file uploads.</p>}
             </div>
             {form.imageUrl && <img src={form.imageUrl} alt="Player preview" className="h-28 w-28 rounded-2xl border border-white/10 object-cover" />}
+          </div>
+        </section>
+
+        <section className="rounded-3xl border border-white/10 bg-[#121720] p-5 sm:p-7">
+          <h2 className="mb-2 text-lg font-bold text-white">Country / nationality flag</h2>
+          <p className="mb-5 text-xs text-[#929BA8]">Upload the flag associated with this player’s country or nationality.</p>
+          <div className="grid gap-5 md:grid-cols-[1fr_auto]">
+            <div>
+              <label className={labelClass}>Flag image URL
+                <input type="url" value={form.countryFlagUrl ?? ''} onChange={(e) => updateForm('countryFlagUrl', e.target.value)} className={inputClass} />
+              </label>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <input ref={flagFileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={(e) => void handleFlagUpload(e.target.files?.[0])} />
+                <button type="button" onClick={() => flagFileInputRef.current?.click()} disabled={!cloudStatus.configured || !cloudStatus.isAdmin || uploadingFlag} className="inline-flex items-center gap-2 rounded-xl bg-white/5 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50">
+                  <ImagePlus className="h-4 w-4" /> {uploadingFlag ? 'Uploading…' : 'Choose flag image'}
+                </button>
+                <span className="text-xs text-[#929BA8]">JPEG, PNG, WebP, or GIF · up to 5 MB</span>
+              </div>
+              {form.countryFlagUrl && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button type="button" onClick={() => handleRemoveImage('countryFlagUrl', 'Country flag')} className="inline-flex items-center gap-1.5 rounded-lg bg-white/5 px-3 py-2 text-xs font-semibold text-[#C0C7D1] hover:bg-white/10">
+                    <X className="h-3.5 w-3.5" /> Remove flag
+                  </button>
+                  {isManagedPlayerImageUrl(form.countryFlagUrl) && (
+                    <button type="button" onClick={() => void handleDeleteUploadedImage('countryFlagUrl', 'Country flag')} disabled={uploadingFlag} className="inline-flex items-center gap-1.5 rounded-lg bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-300 hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-50">
+                      <Trash2 className="h-3.5 w-3.5" /> Delete uploaded file
+                    </button>
+                  )}
+                </div>
+              )}
+              {flagUploadMessage && <p role="status" className="mt-3 text-xs text-[#20C878]">{flagUploadMessage}</p>}
+              {!cloudStatus.configured && <p className="mt-2 text-xs text-amber-300">Configure Supabase to enable file uploads.</p>}
+              {cloudStatus.configured && !cloudStatus.isAdmin && <p className="mt-2 text-xs text-amber-300">Admin sign-in is required for file uploads.</p>}
+            </div>
+            {form.countryFlagUrl && <img src={form.countryFlagUrl} alt="Country flag preview" className="h-12 w-20 self-start rounded border border-white/10 object-cover" />}
           </div>
         </section>
 

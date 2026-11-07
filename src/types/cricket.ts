@@ -100,6 +100,7 @@ export interface Player {
   nationality: string;
   dob?: string;
   imageUrl: string;
+  countryFlagUrl?: string;
   primaryRole: PlayerRole;
   secondaryRoles: PlayerRole[];
   specialization: PlayerSpecialization;

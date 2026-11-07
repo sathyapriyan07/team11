@@ -25,11 +25,13 @@ export const PlayerDetailPage: React.FC = () => {
 
   if (!player) {
     return (
-      <div className="mx-auto max-w-5xl px-4 py-12">
-        <button type="button" onClick={() => navigate('/players')} className="inline-flex items-center gap-2 text-sm text-[#929BA8] hover:text-white">
-          <ArrowLeft className="h-4 w-4" /> Back to players
-        </button>
-        <p role="alert" className="mt-8 text-rose-400">Player not found.</p>
+      <div className="min-h-[60vh] w-full px-4 py-12 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <button type="button" onClick={() => navigate('/players')} className="inline-flex items-center gap-2 text-sm text-[#929BA8] hover:text-white">
+            <ArrowLeft className="h-4 w-4" /> Back to players
+          </button>
+          <p role="alert" className="mt-8 text-rose-400">Player not found.</p>
+        </div>
       </div>
     );
   }
@@ -42,13 +44,37 @@ export const PlayerDetailPage: React.FC = () => {
       : statFormat === 'TEST'
       ? player.stats.TEST
       : player.stats.T20;
+  const legacyTeamNames: Record<string, string> = {
+    'team-csk': 'Chennai Super Kings',
+    'team-mi': 'Mumbai Indians',
+    'team-rcb': 'Royal Challengers Bengaluru',
+    'team-kkr': 'Kolkata Knight Riders',
+    'team-srh': 'Sunrisers Hyderabad',
+    'team-rr': 'Rajasthan Royals',
+    'team-gt': 'Gujarat Titans',
+    'team-dc': 'Delhi Capitals',
+    'team-ind': 'India National Team',
+    'team-aus': 'Australia National Team',
+    'team-sa': 'South Africa National Team',
+  };
+  const associatedTeams = player.teamsPlayed.map((teamId) => ({
+    id: teamId,
+    name: storageService.getTeamById(teamId)?.name ?? legacyTeamNames[teamId] ?? teamId,
+  }));
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
-      <div className="relative w-full overflow-hidden rounded-2xl border border-white/10 bg-[#121720] shadow-2xl">
-        {/* Header Cover Bar */}
-        <div className="relative flex min-h-40 items-end justify-between bg-gradient-to-r from-[#182420] via-[#1b2f28] to-[#142334] p-4 pt-12 sm:min-h-48 sm:p-6">
-          <div className="absolute right-3 top-3 flex items-center gap-2 sm:right-4 sm:top-4">
+    <div className="min-h-[70vh] w-full">
+      <section className="relative overflow-hidden border-b border-white/10 bg-gradient-to-br from-[#182420] via-[#14221f] to-[#101a26]">
+        <div className="mx-auto max-w-7xl px-4 pt-6 sm:px-6 sm:pt-8 lg:px-8">
+          <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => navigate(navigationState?.returnTo || '/players')}
+              className="inline-flex items-center gap-2 text-sm font-semibold text-[#C0C7D1] transition-colors hover:text-white"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </button>
             {navigationState?.selectForXI && (
               <button
                 type="button"
@@ -62,26 +88,23 @@ export const PlayerDetailPage: React.FC = () => {
                 {navigationState.isInTeam ? 'Remove from XI' : '+ Select for XI'}
               </button>
             )}
-            <button
-              type="button"
-              onClick={() => navigate(navigationState?.returnTo || '/players')}
-              aria-label="Back"
-              className="rounded-full bg-black/40 p-2 text-white transition-colors hover:bg-black/60"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </button>
           </div>
 
-          <div className="flex min-w-0 items-end gap-4">
-            <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl border-2 border-[#20C878] bg-[#090B0F] shadow-xl sm:-mb-8 sm:h-24 sm:w-24">
-              <img
-                src={player.imageUrl}
-                alt={player.displayName}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div>
+          <div className="flex min-w-0 flex-wrap items-end gap-5 sm:gap-8">
+            <img
+              src={player.imageUrl}
+              alt={player.displayName}
+              className="h-32 w-28 shrink-0 self-end object-contain object-bottom sm:h-40 sm:w-36 lg:h-48 lg:w-44"
+            />
+            <div className="pb-4 sm:pb-6">
               <div className="flex items-center gap-2">
+                {player.countryFlagUrl && (
+                  <img
+                    src={player.countryFlagUrl}
+                    alt={`${player.country} flag`}
+                    className="h-4 w-6 rounded-sm object-cover"
+                  />
+                )}
                 <span className="text-xs uppercase font-bold text-[#20C878] tracking-wider">
                   {player.country}
                 </span>
@@ -94,21 +117,14 @@ export const PlayerDetailPage: React.FC = () => {
               <h2 className="mt-1 line-clamp-2 text-lg font-bold font-heading text-white sm:text-2xl">
                 {player.fullName}
               </h2>
-              <p className="text-xs text-[#929BA8]">{player.specialization}</p>
+              <p className="mt-1 text-sm text-[#B0BAC8]">{player.specialization}</p>
             </div>
           </div>
-
-          {/* Ratings Pill */}
-          <div className="hidden sm:flex flex-col items-end">
-            <span className="text-[10px] text-[#929BA8] uppercase font-bold">Overall Rating</span>
-            <span className="text-3xl font-extrabold font-heading text-[#20C878]">
-              {player.overallRating}
-            </span>
-          </div>
         </div>
+      </section>
 
-        {/* Modal Navigation Tabs */}
-        <div className="flex overflow-x-auto border-b border-white/5 bg-[#181F29] px-2 pt-2 sm:px-6 sm:pt-8">
+      <nav aria-label="Player details" className="border-b border-white/10 bg-[#121720]">
+        <div className="mx-auto flex max-w-7xl overflow-x-auto px-2 sm:px-6 lg:px-8">
           {(
             [
               { id: 'overview', label: 'Overview', icon: User },
@@ -135,9 +151,9 @@ export const PlayerDetailPage: React.FC = () => {
             );
           })}
         </div>
+      </nav>
 
-        {/* Tab Content */}
-        <div className="min-h-[420px] p-4 sm:p-6">
+      <div className="mx-auto min-h-[420px] w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
           {activeTab === 'overview' && (
             <div className="flex flex-col gap-6">
               {/* Bio */}
@@ -342,37 +358,30 @@ export const PlayerDetailPage: React.FC = () => {
               <h4 className="text-xs font-bold uppercase tracking-wider text-[#929BA8]">
                 Associated Teams & Franchises
               </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {player.teamsPlayed.map((teamId) => (
-                  <div
-                    key={teamId}
-                    className="flex items-center gap-3 p-3 bg-[#181F29] rounded-xl border border-white/5"
-                  >
-                    <div className="w-10 h-10 rounded-lg bg-[#121720] flex items-center justify-center font-bold font-heading text-white">
-                      {teamId.replace('team-', '').toUpperCase()}
+              {associatedTeams.length > 0 ? (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {associatedTeams.map((team) => (
+                    <div
+                      key={team.id}
+                      className="flex items-center gap-3 rounded-xl border border-white/5 bg-[#181F29] p-3"
+                    >
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#121720] font-bold font-heading text-white">
+                        {team.id.replace('team-', '').toUpperCase()}
+                      </div>
+                      <div>
+                        <span className="block text-sm font-bold text-white">{team.name}</span>
+                        <span className="text-xs text-[#929BA8]">Eligible Squad Member</span>
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-sm font-bold text-white block">
-                        {teamId === 'team-csk' && 'Chennai Super Kings'}
-                        {teamId === 'team-mi' && 'Mumbai Indians'}
-                        {teamId === 'team-rcb' && 'Royal Challengers Bengaluru'}
-                        {teamId === 'team-kkr' && 'Kolkata Knight Riders'}
-                        {teamId === 'team-srh' && 'Sunrisers Hyderabad'}
-                        {teamId === 'team-rr' && 'Rajasthan Royals'}
-                        {teamId === 'team-gt' && 'Gujarat Titans'}
-                        {teamId === 'team-dc' && 'Delhi Capitals'}
-                        {teamId === 'team-ind' && 'India National Team'}
-                        {teamId === 'team-aus' && 'Australia National Team'}
-                        {teamId === 'team-sa' && 'South Africa National Team'}
-                      </span>
-                      <span className="text-xs text-[#929BA8]">Eligible Squad Member</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="rounded-xl border border-dashed border-white/10 p-4 text-sm text-[#929BA8]">
+                  No associated teams or franchises have been added yet.
+                </p>
+              )}
             </div>
           )}
-        </div>
       </div>
     </div>
   );

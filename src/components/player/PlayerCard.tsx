@@ -108,6 +108,14 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
 
           <div className="mt-auto min-w-0">
             <div className="flex min-w-0 items-center gap-1">
+              {player.countryFlagUrl && (
+                <img
+                  src={player.countryFlagUrl}
+                  alt=""
+                  aria-hidden="true"
+                  className="h-3 w-4 shrink-0 rounded-[2px] object-cover"
+                />
+              )}
               <span className="truncate text-[7px] font-bold uppercase tracking-wide text-white/80 drop-shadow sm:text-[9px]">
                 {player.country}
               </span>

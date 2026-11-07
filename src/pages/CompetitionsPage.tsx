@@ -56,11 +56,14 @@ export const CompetitionsPage: React.FC = () => {
                   : 'border-white/5 bg-[#121720] text-[#929BA8] hover:border-white/20'
               }`}
             >
-              <div className="flex items-center justify-between mb-2">
+              <div className="mb-2 flex items-center justify-between gap-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-white/5 text-white/70">
                   {comp.format}
                 </span>
-                <span className="text-xs font-bold text-[#20C878]">{comp.competitionType}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-[#20C878]">{comp.competitionType}</span>
+                  {comp.logo && <img src={comp.logo} alt="" className="h-7 w-7 rounded-md object-contain" />}
+                </div>
               </div>
               <h3 className="text-base font-bold text-white font-heading truncate">{comp.name}</h3>
               <p className="text-xs text-[#929BA8] mt-1">{comp.country} • {comp.currentSeason}</p>
@@ -81,9 +84,12 @@ export const CompetitionsPage: React.FC = () => {
                 <span className="text-xs text-[#929BA8]">•</span>
                 <span className="text-xs text-[#929BA8]">{activeComp.country}</span>
               </div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold font-heading text-white mt-1">
-                {activeComp.name}
-              </h2>
+              <div className="mt-1 flex items-center gap-3">
+                {activeComp.logo && <img src={activeComp.logo} alt="" className="h-12 w-12 shrink-0 rounded-xl object-contain" />}
+                <h2 className="text-2xl font-extrabold font-heading text-white sm:text-3xl">
+                  {activeComp.name}
+                </h2>
+              </div>
               <p className="text-xs sm:text-sm text-[#929BA8] mt-2 max-w-2xl leading-relaxed">
                 {activeComp.description}
               </p>
@@ -154,8 +160,11 @@ export const CompetitionsPage: React.FC = () => {
                     className="p-4 bg-[#181F29] rounded-2xl border border-white/5 hover:border-white/20 transition-all flex flex-col justify-between"
                   >
                     <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold font-heading text-white">{team.name}</span>
+                      <div className="mb-2 flex items-center justify-between gap-3">
+                        <div className="flex min-w-0 items-center gap-2">
+                          {team.logo && <img src={team.logo} alt="" className="h-8 w-8 shrink-0 rounded-lg object-contain" />}
+                          <span className="truncate text-xs font-bold font-heading text-white">{team.name}</span>
+                        </div>
                         <span className="text-[10px] font-bold text-[#929BA8]">{team.code}</span>
                       </div>
                       <p className="text-xs text-[#929BA8]">{team.homeGround}</p>

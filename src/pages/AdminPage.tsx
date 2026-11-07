@@ -1,7 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { storageService } from '../services/storageService';
-import { isSupabaseAdmin, supabase } from '../services/supabaseClient';
+import {
+  isSupabaseAdmin,
+  supabase,
+  uploadCompetitionLogo,
+  uploadTeamLogo,
+} from '../services/supabaseClient';
 import {
   Competition,
   CompetitionRules,
@@ -22,6 +27,7 @@ import {
   CheckCircle2,
   FileCode,
   RotateCcw,
+  ImagePlus,
 } from 'lucide-react';
 
 const DEFAULT_COMPETITION_RULES: CompetitionRules = {
@@ -36,17 +42,28 @@ const DEFAULT_COMPETITION_RULES: CompetitionRules = {
   requireViceCaptain: true,
 };
 
+type AdminTab = 'dashboard' | 'players' | 'teams' | 'competitions' | 'import' | 'schema';
+
 export const AdminPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const teamLogoInputRef = useRef<HTMLInputElement>(null);
+  const competitionLogoInputRef = useRef<HTMLInputElement>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [teams, setTeams] = useState<TeamEntity[]>([]);
   const [squads, setSquads] = useState<SquadMembership[]>([]);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'players' | 'teams' | 'competitions' | 'import' | 'schema'>('dashboard');
+  const [activeTab, setActiveTab] = useState<AdminTab>(() => {
+    const requestedTab = (location.state as { adminTab?: AdminTab } | null)?.adminTab;
+    return requestedTab ?? 'dashboard';
+  });
 
   const [competitionName, setCompetitionName] = useState('');
   const [competitionShortName, setCompetitionShortName] = useState('');
   const [competitionCountry, setCompetitionCountry] = useState('');
+  const [competitionLogo, setCompetitionLogo] = useState('');
+  const [competitionLogoMessage, setCompetitionLogoMessage] = useState('');
+  const [uploadingCompetitionLogo, setUploadingCompetitionLogo] = useState(false);
   const [competitionType, setCompetitionType] = useState<Competition['competitionType']>('Franchise');
   const [competitionFormat, setCompetitionFormat] = useState<CricketFormat>('T20');
   const [competitionSeason, setCompetitionSeason] = useState(new Date().getFullYear().toString());
@@ -58,6 +75,8 @@ export const AdminPage: React.FC = () => {
   const [teamCompetitionId, setTeamCompetitionId] = useState('');
   const [teamType, setTeamType] = useState<TeamEntity['type']>('Franchise');
   const [teamLogo, setTeamLogo] = useState('');
+  const [teamLogoMessage, setTeamLogoMessage] = useState('');
+  const [uploadingTeamLogo, setUploadingTeamLogo] = useState(false);
   const [teamPrimaryColor, setTeamPrimaryColor] = useState('#20C878');
   const [teamSecondaryColor, setTeamSecondaryColor] = useState('#181F29');
   const [teamHomeGround, setTeamHomeGround] = useState('');
@@ -127,6 +146,54 @@ export const AdminPage: React.FC = () => {
     if (error) setAuthError(error.message);
   };
 
+  const handleCompetitionLogoUpload = async (file?: File) => {
+    if (!file) return;
+    setCompetitionLogoMessage('');
+    if (!cloudStatus.configured) {
+      setCompetitionLogoMessage('Configure Supabase URL and anon key to upload logos.');
+      return;
+    }
+    if (!cloudStatus.isAdmin) {
+      setCompetitionLogoMessage('Sign in as an authorized admin before uploading.');
+      return;
+    }
+
+    setUploadingCompetitionLogo(true);
+    try {
+      setCompetitionLogo(await uploadCompetitionLogo(file));
+      setCompetitionLogoMessage('Logo uploaded. Create the competition to save it.');
+    } catch (error) {
+      setCompetitionLogoMessage(error instanceof Error ? error.message : 'Competition logo upload failed.');
+    } finally {
+      setUploadingCompetitionLogo(false);
+      if (competitionLogoInputRef.current) competitionLogoInputRef.current.value = '';
+    }
+  };
+
+  const handleTeamLogoUpload = async (file?: File) => {
+    if (!file) return;
+    setTeamLogoMessage('');
+    if (!cloudStatus.configured) {
+      setTeamLogoMessage('Configure Supabase URL and anon key to upload logos.');
+      return;
+    }
+    if (!cloudStatus.isAdmin) {
+      setTeamLogoMessage('Sign in as an authorized admin before uploading.');
+      return;
+    }
+
+    setUploadingTeamLogo(true);
+    try {
+      setTeamLogo(await uploadTeamLogo(file));
+      setTeamLogoMessage('Logo uploaded. Create the team to save it.');
+    } catch (error) {
+      setTeamLogoMessage(error instanceof Error ? error.message : 'Team logo upload failed.');
+    } finally {
+      setUploadingTeamLogo(false);
+      if (teamLogoInputRef.current) teamLogoInputRef.current.value = '';
+    }
+  };
+
   const handleSaveCompetition = (e: React.FormEvent) => {
     e.preventDefault();
     if (!requireAdminAccess()) return;
@@ -145,7 +212,7 @@ export const AdminPage: React.FC = () => {
       name: competitionName.trim(),
       shortName: competitionShortName.trim(),
       slug,
-      logo: '',
+      logo: competitionLogo.trim(),
       competitionType,
       format: competitionFormat,
       country: competitionCountry.trim(),
@@ -157,6 +224,8 @@ export const AdminPage: React.FC = () => {
     setCompetitionName('');
     setCompetitionShortName('');
     setCompetitionCountry('');
+    setCompetitionLogo('');
+    setCompetitionLogoMessage('');
     setCompetitionDescription('');
     setFormError('');
   };
@@ -188,6 +257,7 @@ export const AdminPage: React.FC = () => {
     setTeamShortName('');
     setTeamCode('');
     setTeamLogo('');
+    setTeamLogoMessage('');
     setTeamHomeGround('');
     setFormError('');
   };
@@ -417,36 +487,42 @@ export const AdminPage: React.FC = () => {
 
       {/* Tab 2: Players Management */}
       {activeTab === 'players' && (
-        <div className="flex flex-col gap-4 bg-[#121720] p-6 rounded-3xl border border-white/10 shadow-xl">
-          <div className="flex items-center justify-between">
+        <div className="flex min-w-0 flex-col gap-4 overflow-hidden rounded-3xl border border-white/10 bg-[#121720] p-4 shadow-xl sm:p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h3 className="text-base font-bold font-heading text-white">
               Player Registry Directory
             </h3>
             <button
               type="button"
-              onClick={() => navigate('/admin/players/new')}
-              className="px-4 py-2 bg-[#20C878] hover:bg-[#1bb56c] text-[#090B0F] font-bold text-xs rounded-xl shadow-md flex items-center gap-1.5 cursor-pointer"
+              onClick={() => navigate('/admin/players/new', { state: { adminTab: 'players' } })}
+              className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#20C878] px-4 py-2 text-xs font-bold text-[#090B0F] shadow-md hover:bg-[#1bb56c] sm:w-auto"
             >
               <Plus className="w-4 h-4" />
               <span>Add New Player</span>
             </button>
           </div>
 
-          <div className="divide-y divide-white/5 max-h-[60vh] overflow-y-auto">
+          <div className="min-w-0 max-h-[60vh] divide-y divide-white/5 overflow-y-auto">
             {players.map((p) => (
               <div
                 key={p.id}
-                className="flex items-center justify-between p-3 hover:bg-[#181F29] rounded-xl transition-colors"
+                className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-xl p-2 transition-colors hover:bg-[#181F29] sm:flex sm:justify-between sm:gap-3 sm:p-3"
               >
-                <div className="flex items-center gap-3">
-                  <img
-                    src={p.imageUrl}
-                    alt=""
-                    className="w-10 h-10 rounded-xl object-cover border border-white/10"
-                  />
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-white">{p.fullName}</span>
+                <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+                  {p.imageUrl ? (
+                    <img
+                      src={p.imageUrl}
+                      alt=""
+                      className="h-10 w-10 shrink-0 rounded-xl border border-white/10 object-cover"
+                    />
+                  ) : (
+                    <div aria-hidden="true" className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/10 bg-[#181F29] text-xs font-bold text-[#20C878]">
+                      {p.displayName.slice(0, 1).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+                      <span className="break-words text-sm font-bold text-white">{p.fullName}</span>
                       <span className="text-xs text-[#929BA8]">({p.country})</span>
                       {p.isOverseasIPL && (
                         <span className="text-[9px] px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 font-bold">
@@ -454,17 +530,17 @@ export const AdminPage: React.FC = () => {
                         </span>
                       )}
                     </div>
-                    <span className="text-xs text-[#929BA8]">
+                    <span className="block break-words text-xs leading-relaxed text-[#929BA8]">
                       {p.primaryRole} • {p.specialization} • Rating: {p.overallRating}
                     </span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
                   <button
                     type="button"
-                    onClick={() => navigate(`/admin/players/${encodeURIComponent(p.id)}/edit`)}
-                    className="px-3 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-semibold text-white"
+                    onClick={() => navigate(`/admin/players/${encodeURIComponent(p.id)}/edit`, { state: { adminTab: 'players' } })}
+                    className="rounded-lg bg-white/5 px-2.5 py-1 text-xs font-semibold text-white hover:bg-white/10 sm:px-3"
                   >
                     Edit
                   </button>
@@ -521,6 +597,15 @@ export const AdminPage: React.FC = () => {
             <label className="text-xs text-[#929BA8]">Logo URL
               <input type="url" value={teamLogo} onChange={(e) => setTeamLogo(e.target.value)} className="mt-1 w-full p-2.5 bg-[#181F29] border border-white/10 rounded-xl text-white" />
             </label>
+            <div className="flex flex-wrap items-center gap-3">
+              <input ref={teamLogoInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={(e) => void handleTeamLogoUpload(e.target.files?.[0])} />
+              <button type="button" onClick={() => teamLogoInputRef.current?.click()} disabled={!cloudStatus.configured || !cloudStatus.isAdmin || uploadingTeamLogo} className="inline-flex items-center gap-2 rounded-xl bg-white/5 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50">
+                <ImagePlus className="h-4 w-4" /> {uploadingTeamLogo ? 'Uploading…' : 'Upload team logo'}
+              </button>
+              <span className="text-xs text-[#929BA8]">JPEG, PNG, WebP, or GIF · up to 5 MB</span>
+              {teamLogo && <img src={teamLogo} alt="Team logo preview" className="h-12 w-12 rounded-lg border border-white/10 object-contain" />}
+            </div>
+            {teamLogoMessage && <p role="status" className="text-xs text-[#20C878]">{teamLogoMessage}</p>}
             <div className="grid grid-cols-2 gap-3">
               <label className="text-xs text-[#929BA8]">Primary color
                 <input type="color" value={teamPrimaryColor} onChange={(e) => setTeamPrimaryColor(e.target.value)} className="mt-1 h-10 w-full rounded-lg bg-[#181F29]" />
@@ -594,6 +679,18 @@ export const AdminPage: React.FC = () => {
             <label className="text-xs text-[#929BA8]">Description
               <textarea rows={2} value={competitionDescription} onChange={(e) => setCompetitionDescription(e.target.value)} className="mt-1 w-full p-2.5 bg-[#181F29] border border-white/10 rounded-xl text-white" />
             </label>
+            <label className="text-xs text-[#929BA8]">Logo URL
+              <input type="url" value={competitionLogo} onChange={(e) => setCompetitionLogo(e.target.value)} className="mt-1 w-full p-2.5 bg-[#181F29] border border-white/10 rounded-xl text-white" />
+            </label>
+            <div className="flex flex-wrap items-center gap-3">
+              <input ref={competitionLogoInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={(e) => void handleCompetitionLogoUpload(e.target.files?.[0])} />
+              <button type="button" onClick={() => competitionLogoInputRef.current?.click()} disabled={!cloudStatus.configured || !cloudStatus.isAdmin || uploadingCompetitionLogo} className="inline-flex items-center gap-2 rounded-xl bg-white/5 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50">
+                <ImagePlus className="h-4 w-4" /> {uploadingCompetitionLogo ? 'Uploading…' : 'Upload competition logo'}
+              </button>
+              <span className="text-xs text-[#929BA8]">JPEG, PNG, WebP, or GIF · up to 5 MB</span>
+              {competitionLogo && <img src={competitionLogo} alt="Competition logo preview" className="h-12 w-12 rounded-lg border border-white/10 object-contain" />}
+            </div>
+            {competitionLogoMessage && <p role="status" className="text-xs text-[#20C878]">{competitionLogoMessage}</p>}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {([
                 ['maxOverseas', 'Max overseas'],
@@ -622,8 +719,13 @@ export const AdminPage: React.FC = () => {
             <div className="divide-y divide-white/5 max-h-[70vh] overflow-y-auto">
               {competitions.map((competition) => (
                 <div key={competition.id} className="py-3">
-                  <p className="text-sm font-bold text-white">{competition.name} <span className="text-[#929BA8]">({competition.shortName})</span></p>
-                  <p className="text-xs text-[#929BA8]">{competition.competitionType} · {competition.format} · {competition.currentSeason}</p>
+                  <div className="flex items-center gap-3">
+                    {competition.logo && <img src={competition.logo} alt="" className="h-10 w-10 rounded-xl border border-white/10 object-contain" />}
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold text-white">{competition.name} <span className="text-[#929BA8]">({competition.shortName})</span></p>
+                      <p className="text-xs text-[#929BA8]">{competition.competitionType} · {competition.format} · {competition.currentSeason}</p>
+                    </div>
+                  </div>
                 </div>
               ))}
               {competitions.length === 0 && <p className="text-sm text-[#929BA8]">No competitions have been created yet.</p>}
