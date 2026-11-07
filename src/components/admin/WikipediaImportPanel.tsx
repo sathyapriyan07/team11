@@ -13,14 +13,16 @@ import {
 import {
   getWikipediaPagePreview,
   getWikipediaPlayerStats,
+  getWikipediaSquadPlayers,
   ImportedStatsFormat,
   searchWikipedia,
   WikipediaPagePreview,
   WikipediaSearchResult,
+  WikipediaSquadPlayer,
   WikipediaStatsPreview,
 } from '../../services/wikipediaService';
 
-type ImportKind = 'player' | 'team' | 'competition' | 'stats';
+type ImportKind = 'player' | 'squad' | 'team' | 'competition' | 'stats';
 
 const EMPTY_STATS: PlayerStats = {
   matches: 0,
@@ -81,6 +83,9 @@ export const WikipediaImportPanel: React.FC<WikipediaImportPanelProps> = ({ clou
   const [results, setResults] = useState<WikipediaSearchResult[]>([]);
   const [preview, setPreview] = useState<WikipediaPagePreview | null>(null);
   const [statsPreview, setStatsPreview] = useState<WikipediaStatsPreview>({});
+  const [squadPlayers, setSquadPlayers] = useState<WikipediaSquadPlayer[]>([]);
+  const [selectedSquadPlayers, setSelectedSquadPlayers] = useState<string[]>([]);
+  const [squadPlayerCountries, setSquadPlayerCountries] = useState<Record<string, string>>({});
   const [selectedStatsFormats, setSelectedStatsFormats] = useState<ImportedStatsFormat[]>([]);
   const [selectedPlayerId, setSelectedPlayerId] = useState('');
   const [loading, setLoading] = useState(false);
@@ -93,6 +98,8 @@ export const WikipediaImportPanel: React.FC<WikipediaImportPanelProps> = ({ clou
   const [draftCode, setDraftCode] = useState('');
   const [draftDescription, setDraftDescription] = useState('');
   const [draftImageUrl, setDraftImageUrl] = useState('');
+  const [squadCountry, setSquadCountry] = useState('');
+  const [squadTeamId, setSquadTeamId] = useState('');
   const [teamType, setTeamType] = useState<TeamEntity['type']>('Franchise');
   const [teamCompetitionId, setTeamCompetitionId] = useState('');
   const [competitionType, setCompetitionType] = useState<Competition['competitionType']>('Franchise');
@@ -107,6 +114,9 @@ export const WikipediaImportPanel: React.FC<WikipediaImportPanelProps> = ({ clou
   const clearPreview = () => {
     setPreview(null);
     setStatsPreview({});
+    setSquadPlayers([]);
+    setSelectedSquadPlayers([]);
+    setSquadPlayerCountries({});
     setSelectedStatsFormats([]);
     setError('');
     setNotice('');
@@ -136,6 +146,9 @@ export const WikipediaImportPanel: React.FC<WikipediaImportPanelProps> = ({ clou
     setNotice('');
     setPreview(null);
     setStatsPreview({});
+    setSquadPlayers([]);
+    setSelectedSquadPlayers([]);
+    setSquadPlayerCountries({});
     setSelectedStatsFormats([]);
     try {
       const page = await getWikipediaPagePreview(result.title);
@@ -146,7 +159,19 @@ export const WikipediaImportPanel: React.FC<WikipediaImportPanelProps> = ({ clou
       setDraftCode('');
       setDraftDescription(page.extract);
       setDraftImageUrl(page.imageUrl);
-      if (kind === 'stats') {
+      if (kind === 'squad') {
+        const players = await getWikipediaSquadPlayers(result.title);
+        const existingNames = new Set(savedPlayers.map((player) => player.fullName.toLocaleLowerCase()));
+        setSquadPlayers(players);
+        setSelectedSquadPlayers(players
+          .filter((player) => !existingNames.has(player.title.toLocaleLowerCase()))
+          .map((player) => player.title));
+        if (players.length === 0) {
+          setNotice('No squad table with linked player names was found. Try a team squad or roster article.');
+        } else if (players.every((player) => existingNames.has(player.title.toLocaleLowerCase()))) {
+          setNotice('All players in this squad already exist in your catalog.');
+        }
+      } else if (kind === 'stats') {
         const stats = await getWikipediaPlayerStats(result.title);
         const availableFormats = formats.filter((format) => Object.keys(stats[format] ?? {}).length > 0);
         setStatsPreview(stats);
@@ -168,6 +193,12 @@ export const WikipediaImportPanel: React.FC<WikipediaImportPanelProps> = ({ clou
       : [...selected, format]);
   };
 
+  const toggleSquadPlayer = (name: string) => {
+    setSelectedSquadPlayers((selected) => selected.includes(name)
+      ? selected.filter((item) => item !== name)
+      : [...selected, name]);
+  };
+
   const handleImport = () => {
     setError('');
     setNotice('');
@@ -176,6 +207,58 @@ export const WikipediaImportPanel: React.FC<WikipediaImportPanelProps> = ({ clou
       return;
     }
     if (!preview) return;
+
+    if (kind === 'squad') {
+      const selectedPlayers = squadPlayers.filter((player) => selectedSquadPlayers.includes(player.title));
+      if (selectedPlayers.length === 0) {
+        setError('Select at least one player to import.');
+        return;
+      }
+      if (selectedPlayers.some((player) => !(squadPlayerCountries[player.title] || squadCountry).trim())) {
+        setError('Enter a country or nationality for every selected player, either as the default or individually.');
+        return;
+      }
+      const existingNames = new Set(savedPlayers.map((player) => player.fullName.toLocaleLowerCase()));
+      const teamIds = squadTeamId ? [squadTeamId] : [];
+      const newPlayers = selectedPlayers.filter((player) => !existingNames.has(player.title.toLocaleLowerCase()));
+      if (newPlayers.length === 0) {
+        setError('All selected players already exist in your catalog.');
+        return;
+      }
+      newPlayers.forEach(({ title: playerName }) => {
+        const country = (squadPlayerCountries[playerName] || squadCountry).trim();
+        const player: Player = {
+          id: `p-${makeSlug(playerName)}-${crypto.randomUUID().slice(0, 8)}`,
+          fullName: playerName,
+          displayName: playerName,
+          country,
+          nationality: country,
+          imageUrl: '',
+          primaryRole: 'Batter',
+          secondaryRoles: [],
+          specialization: 'Top-order batter',
+          battingHand: 'Right-hand bat',
+          bowlingStyle: 'None',
+          careerStatus: 'Active',
+          bio: `Listed in the ${preview.title} squad on Wikipedia.`,
+          overallRating: 50,
+          formatRatings: { T20: 50, ODI: 50, TEST: 50 },
+          attributes: { ...EMPTY_ATTRIBUTES },
+          stats: { T20: { ...EMPTY_STATS }, ODI: { ...EMPTY_STATS }, TEST: { ...EMPTY_STATS } },
+          teamsPlayed: teamIds,
+          isOverseasIPL: false,
+        };
+        storageService.savePlayer(player);
+      });
+      setNotice(`${newPlayers.length} squad player${newPlayers.length === 1 ? '' : 's'} imported. Review each saved record before using it.`);
+      setPreview(null);
+      setSquadPlayers([]);
+      setSelectedSquadPlayers([]);
+      setSquadPlayerCountries({});
+      setResults([]);
+      setQuery('');
+      return;
+    }
 
     const name = draftName.trim();
     if (!name) {
@@ -302,6 +385,7 @@ export const WikipediaImportPanel: React.FC<WikipediaImportPanelProps> = ({ clou
       <div className="flex gap-2 overflow-x-auto pb-1">
         {([
           ['player', 'Player'],
+          ['squad', 'Team squad'],
           ['team', 'Team'],
           ['competition', 'Competition'],
           ['stats', 'Player stats'],
@@ -311,6 +395,8 @@ export const WikipediaImportPanel: React.FC<WikipediaImportPanelProps> = ({ clou
             type="button"
             onClick={() => {
               setKind(value);
+              setResults([]);
+              setQuery('');
               clearPreview();
             }}
             className={`shrink-0 rounded-xl px-3 py-2 text-xs font-bold transition-colors ${
@@ -337,7 +423,7 @@ export const WikipediaImportPanel: React.FC<WikipediaImportPanelProps> = ({ clou
           id="wikipedia-search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder={kind === 'stats' ? 'Search player article for stats' : `Search Wikipedia for a ${kind}`}
+          placeholder={kind === 'stats' ? 'Search player article for stats' : kind === 'squad' ? 'Search Wikipedia for a team squad' : `Search Wikipedia for a ${kind}`}
           className={`${inputClass} mt-0 min-w-0 flex-1`}
         />
         <button type="submit" disabled={loading || !query.trim()} className="inline-flex items-center justify-center gap-2 rounded-xl bg-white/5 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/10 disabled:opacity-50">
@@ -371,7 +457,7 @@ export const WikipediaImportPanel: React.FC<WikipediaImportPanelProps> = ({ clou
             </div>
           </div>
 
-          {kind !== 'stats' ? (
+          {kind !== 'stats' && kind !== 'squad' ? (
             <div className="grid gap-3 sm:grid-cols-2">
               <label className={labelClass}>Name
                 <input value={draftName} onChange={(event) => setDraftName(event.target.value)} className={inputClass} />
@@ -434,6 +520,74 @@ export const WikipediaImportPanel: React.FC<WikipediaImportPanelProps> = ({ clou
                 </label>
               )}
             </div>
+          ) : kind === 'squad' ? (
+            <div className="flex flex-col gap-4">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className={labelClass}>Default country / nationality (optional)
+                  <input value={squadCountry} onChange={(event) => setSquadCountry(event.target.value)} className={inputClass} />
+                </label>
+                <label className={labelClass}>Assign to team (optional)
+                  <select value={squadTeamId} onChange={(event) => setSquadTeamId(event.target.value)} className={inputClass}>
+                    <option value="">Do not assign a team</option>
+                    {savedTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
+                  </select>
+                </label>
+              </div>
+              {squadPlayers.length > 0 && (
+                <div className="overflow-hidden rounded-xl border border-white/10">
+                  <div className="flex items-center justify-between gap-3 bg-white/5 px-3 py-2">
+                    <span className="text-xs font-semibold text-white">{squadPlayers.length} players found</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const existingNames = new Set(savedPlayers.map((player) => player.fullName.toLocaleLowerCase()));
+                        setSelectedSquadPlayers(squadPlayers
+                          .filter((player) => !existingNames.has(player.title.toLocaleLowerCase()))
+                          .map((player) => player.title));
+                      }}
+                      className="text-xs font-semibold text-[#20C878] hover:underline"
+                    >
+                      Select new players
+                    </button>
+                  </div>
+                  <div className="max-h-64 divide-y divide-white/5 overflow-y-auto">
+                    {squadPlayers.map((player) => {
+                      const exists = savedPlayers.some((saved) => saved.fullName.toLocaleLowerCase() === player.title.toLocaleLowerCase());
+                      return (
+                        <label key={player.pageUrl} className="flex flex-wrap items-center gap-3 px-3 py-2 text-sm text-white">
+                          <input
+                            type="checkbox"
+                            checked={selectedSquadPlayers.includes(player.title)}
+                            disabled={exists}
+                            onChange={() => toggleSquadPlayer(player.title)}
+                          />
+                          <span className="min-w-0 flex-1 truncate">{player.title}</span>
+                          {exists && <span className="text-[11px] text-[#929BA8]">Already imported</span>}
+                          {!exists && (
+                            <input
+                              aria-label={`${player.title} country or nationality`}
+                              placeholder={squadCountry || 'Country / nationality'}
+                              value={squadPlayerCountries[player.title] ?? ''}
+                              onChange={(event) => setSquadPlayerCountries((countries) => ({
+                                ...countries,
+                                [player.title]: event.target.value,
+                              }))}
+                              className="w-36 rounded-lg border border-white/10 bg-[#181F29] px-2 py-1 text-xs text-white"
+                            />
+                          )}
+                          <a href={player.pageUrl} target="_blank" rel="noreferrer" aria-label={`Open ${player.title} on Wikipedia`} className="text-[#20C878] hover:underline">
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              <p className="text-[11px] leading-relaxed text-[#929BA8]">
+                Squad imports create player records with basic defaults. Set a default or individual nationality, then review and complete each player’s role, ratings, stats, and photo in Manage Players.
+              </p>
+            </div>
           ) : (
             <div>
               {savedPlayers.length === 0 && <p className="text-xs text-amber-300">Create or import a player before importing statistics.</p>}
@@ -471,7 +625,7 @@ export const WikipediaImportPanel: React.FC<WikipediaImportPanelProps> = ({ clou
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-3">
             <span className="text-[11px] text-[#929BA8]">Wikipedia content is community-maintained; verify the article and imported values.</span>
             <button type="button" onClick={handleImport} disabled={!canWrite || loading || (kind === 'stats' && savedPlayers.length === 0)} className="inline-flex items-center gap-2 rounded-xl bg-[#20C878] px-4 py-2.5 text-xs font-bold text-[#090B0F] hover:bg-[#1bb56c] disabled:cursor-not-allowed disabled:opacity-50">
-              <CheckCircle2 className="h-4 w-4" /> {kind === 'stats' ? 'Apply selected stats' : 'Import reviewed record'}
+              <CheckCircle2 className="h-4 w-4" /> {kind === 'stats' ? 'Apply selected stats' : kind === 'squad' ? `Import ${selectedSquadPlayers.length} selected players` : 'Import reviewed record'}
             </button>
           </div>
         </div>

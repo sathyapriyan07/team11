@@ -13,6 +13,11 @@ export interface WikipediaPagePreview {
   pageUrl: string;
 }
 
+export interface WikipediaSquadPlayer {
+  title: string;
+  pageUrl: string;
+}
+
 export type ImportedStatsFormat = 'T20' | 'ODI' | 'TEST' | 'IPL';
 
 export type WikipediaStatsPreview = Partial<Record<ImportedStatsFormat, Partial<PlayerStats>>>;
@@ -171,6 +176,67 @@ function assignCellValue(stats: Partial<PlayerStats>, metric: keyof PlayerStats,
   }
   const value = parseNumber(text);
   if (value !== undefined) stats[metric] = value;
+}
+
+export async function getWikipediaSquadPlayers(title: string): Promise<WikipediaSquadPlayer[]> {
+  const url = new URL(API_URL);
+  url.search = new URLSearchParams({
+    action: 'parse',
+    page: title,
+    prop: 'text',
+    format: 'json',
+    origin: '*',
+  }).toString();
+
+  const response = await fetchJson<WikipediaParseResponse>(url);
+  const html = typeof response.parse?.text === 'string'
+    ? response.parse.text
+    : response.parse?.text?.['*'];
+  if (!html) throw new Error('Wikipedia did not return squad tables for this article.');
+
+  const document = new DOMParser().parseFromString(html, 'text/html');
+  const tables = Array.from(document.querySelectorAll<HTMLTableElement>('table'));
+  const candidates = tables.flatMap((table) => {
+    const rows = Array.from(table.querySelectorAll('tr'));
+    if (rows.length < 4) return [];
+
+    const headers = Array.from(rows[0].querySelectorAll('th, td'));
+    const playerColumn = headers.findIndex((header) => /\b(player|cricketer|squad member|name)\b/i.test(header.textContent ?? ''));
+    if (playerColumn < 0) return [];
+
+    const headings = Array.from(document.querySelectorAll('h2, h3, h4'));
+    let sectionHeading = '';
+    for (const heading of headings) {
+      if (heading.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING) {
+        sectionHeading = heading.textContent ?? '';
+      }
+    }
+
+    if (!/\b(squad|roster|current players|current team)\b/i.test(sectionHeading)) return [];
+
+    const players = rows.slice(1).flatMap((row) => {
+      const cell = row.querySelectorAll('th, td').item(playerColumn);
+      if (!cell) return [];
+      const anchor = Array.from(cell.querySelectorAll<HTMLAnchorElement>('a[href^="/wiki/"]'))
+        .find((link) => !link.getAttribute('href')?.includes(':'));
+      const playerName = anchor?.textContent?.replace(/\[[^\]]*]/g, '').trim();
+      const href = anchor?.getAttribute('href');
+      if (!playerName || !href || playerName.length < 2) return [];
+      return [{ title: playerName, pageUrl: new URL(href, 'https://en.wikipedia.org').toString() }];
+    });
+
+    if (players.length < 3) return [];
+    return [{ players }];
+  });
+
+  const uniquePlayers = new Map<string, WikipediaSquadPlayer>();
+  for (const candidate of candidates) {
+    for (const player of candidate.players) {
+      const key = player.title.toLocaleLowerCase();
+      if (!uniquePlayers.has(key)) uniquePlayers.set(key, player);
+    }
+  }
+  return Array.from(uniquePlayers.values());
 }
 
 export async function getWikipediaPlayerStats(title: string): Promise<WikipediaStatsPreview> {
