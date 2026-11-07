@@ -297,11 +297,17 @@ export const PoolsPage: React.FC = () => {
                             : 'bg-[#121720] text-[#929BA8] hover:text-white border border-white/5'
                         }`}
                       >
-                        <img
-                          src={cand.imageUrl}
-                          alt={cand.displayName}
-                          className="w-6 h-6 rounded-md object-cover shrink-0"
-                        />
+                        {cand.imageUrl ? (
+                          <img
+                            src={cand.imageUrl}
+                            alt={cand.displayName}
+                            className="w-6 h-6 rounded-md object-cover shrink-0"
+                          />
+                        ) : (
+                          <span aria-hidden="true" className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-[#202938] text-[10px] font-bold text-[#20C878]">
+                            {cand.displayName.slice(0, 1).toUpperCase()}
+                          </span>
+                        )}
                         <div className="min-w-0 flex-1 truncate">
                           <span className="font-bold block truncate">{cand.displayName}</span>
                           <span className="text-[10px] text-[#929BA8] block">

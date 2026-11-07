@@ -6,25 +6,27 @@ interface RulesValidationBarProps {
   validation: ValidationResult;
   onSaveDraft?: () => void;
   onSaveCompleted?: () => void;
+  canSave?: boolean;
 }
 
 export const RulesValidationBar: React.FC<RulesValidationBarProps> = ({
   validation,
   onSaveDraft,
   onSaveCompleted,
+  canSave = true,
 }) => {
   const [showDetails, setShowDetails] = useState<boolean>(false);
 
   const isCompletedReady = validation.isValid && validation.playersCount === 11;
 
   return (
-    <div className="flex flex-col bg-[#121720] border border-white/10 rounded-2xl overflow-hidden shadow-xl">
+    <div className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#121720]">
       {/* Top Banner Status Bar */}
-      <div className="flex flex-col gap-4 p-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-2 p-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3 sm:p-3">
         {/* Main Status Pill */}
-        <div className="flex min-w-0 items-center gap-3">
+        <div className="flex min-w-0 items-center gap-2">
           <div
-            className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
               validation.status === 'valid'
                 ? 'bg-[#20C878]/20 text-[#20C878]'
                 : validation.status === 'warning'
@@ -32,15 +34,15 @@ export const RulesValidationBar: React.FC<RulesValidationBarProps> = ({
                 : 'bg-rose-500/20 text-rose-400'
             }`}
           >
-            {validation.status === 'valid' && <CheckCircle2 className="w-5 h-5" />}
-            {validation.status === 'warning' && <AlertTriangle className="w-5 h-5" />}
-            {validation.status === 'invalid' && <XCircle className="w-5 h-5" />}
+            {validation.status === 'valid' && <CheckCircle2 className="h-4 w-4" />}
+            {validation.status === 'warning' && <AlertTriangle className="h-4 w-4" />}
+            {validation.status === 'invalid' && <XCircle className="h-4 w-4" />}
           </div>
 
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span
-                className={`text-xs font-bold uppercase tracking-wider ${
+                className={`text-[9px] font-bold uppercase tracking-wide sm:text-[10px] ${
                   validation.status === 'valid'
                     ? 'text-[#20C878]'
                     : validation.status === 'warning'
@@ -55,7 +57,7 @@ export const RulesValidationBar: React.FC<RulesValidationBarProps> = ({
                   : 'Rules Infraction Detected'}
               </span>
             </div>
-            <p className="mt-0.5 text-xs text-[#929BA8]">
+            <p className="mt-0.5 text-[9px] leading-snug text-[#929BA8] sm:text-[10px]">
               {validation.errors.length > 0
                 ? validation.errors[0]
                 : validation.warnings.length > 0
@@ -66,9 +68,9 @@ export const RulesValidationBar: React.FC<RulesValidationBarProps> = ({
         </div>
 
         {/* Tactical Counters */}
-        <div className="flex w-full flex-wrap items-center gap-2 text-xs sm:w-auto sm:gap-3">
+        <div className="flex w-full flex-wrap items-center gap-1.5 text-[9px] sm:w-auto sm:gap-2 sm:text-[10px]">
           {/* Starting Count */}
-          <div className="flex shrink-0 items-center gap-1.5 rounded-xl border border-white/5 bg-[#181F29] px-3 py-1.5">
+          <div className="flex shrink-0 items-center gap-1 rounded-lg border border-white/5 bg-[#181F29] px-2 py-1">
             <span className="text-[#929BA8]">XI:</span>
             <span
               className={`font-bold ${
@@ -80,7 +82,7 @@ export const RulesValidationBar: React.FC<RulesValidationBarProps> = ({
           </div>
 
           {/* Overseas Count */}
-          <div className="flex shrink-0 items-center gap-1.5 rounded-xl border border-white/5 bg-[#181F29] px-3 py-1.5">
+          <div className="flex shrink-0 items-center gap-1 rounded-lg border border-white/5 bg-[#181F29] px-2 py-1">
             <span className="text-[#929BA8]">Overseas:</span>
             <span
               className={`font-bold ${
@@ -131,19 +133,20 @@ export const RulesValidationBar: React.FC<RulesValidationBarProps> = ({
               type="button"
               onClick={() => setShowDetails(!showDetails)}
               aria-label={showDetails ? 'Hide validation details' : 'Show validation details'}
-              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-[#929BA8] hover:text-white transition-colors"
+              className="rounded-lg bg-white/5 p-1 hover:bg-white/10 text-[#929BA8] hover:text-white transition-colors"
             >
-              {showDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              {showDetails ? <ChevronUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> : <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
             </button>
           )}
 
           {/* Action buttons */}
-          <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2 sm:ml-0">
+          <div className="ml-auto flex min-w-0 items-center gap-1.5 sm:ml-0">
             {onSaveDraft && (
               <button
                 type="button"
                 onClick={onSaveDraft}
-                className="min-h-9 flex-1 whitespace-nowrap rounded-xl border border-white/5 bg-[#181F29] px-3 py-1.5 text-xs font-semibold text-[#929BA8] transition-colors hover:bg-[#202938] hover:text-white sm:flex-none"
+                disabled={!canSave}
+                className="min-h-7 whitespace-nowrap rounded-lg border border-white/5 bg-[#181F29] px-2 py-1 text-[9px] font-semibold text-[#929BA8] transition-colors hover:bg-[#202938] hover:text-white disabled:cursor-not-allowed disabled:opacity-40 sm:min-h-8 sm:px-2.5 sm:text-[10px]"
               >
                 Save Draft
               </button>
@@ -153,8 +156,8 @@ export const RulesValidationBar: React.FC<RulesValidationBarProps> = ({
               <button
                 type="button"
                 onClick={onSaveCompleted}
-                disabled={!isCompletedReady}
-                className={`min-h-9 flex-1 whitespace-nowrap rounded-xl px-3 py-1.5 text-xs font-bold transition-all shadow-md sm:flex-none sm:px-4 ${
+                disabled={!canSave || !isCompletedReady}
+                className={`min-h-7 whitespace-nowrap rounded-lg px-2 py-1 text-[9px] font-bold transition-all sm:min-h-8 sm:px-2.5 sm:text-[10px] ${
                   isCompletedReady
                     ? 'bg-[#20C878] hover:bg-[#1bb56c] text-[#090B0F]'
                     : 'bg-white/10 text-white/40 cursor-not-allowed'

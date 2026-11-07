@@ -49,21 +49,21 @@ export const PlayingXITable: React.FC<PlayingXITableProps> = ({
   return (
     <div className="flex flex-col bg-[#121720] border border-white/10 rounded-2xl overflow-hidden shadow-xl">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 bg-[#181F29] border-b border-white/5">
-        <div>
-          <h3 className="text-base font-bold font-heading text-white flex items-center gap-2">
+      <div className="flex flex-col items-start gap-2 p-3 bg-[#181F29] border-b border-white/5 sm:flex-row sm:items-center sm:justify-between sm:p-4">
+        <div className="min-w-0">
+          <h3 className="text-sm sm:text-base font-bold font-heading text-white flex items-center gap-2">
             <span>🏏</span> Starting Playing XI
           </h3>
-          <p className="text-xs text-[#929BA8] mt-0.5">
+          <p className="text-[10px] sm:text-xs text-[#929BA8] mt-0.5">
             Arrange batting order (1–11) and designate Captain (C), Vice Captain (VC) and Keeper (WK).
           </p>
         </div>
-        <div className="flex items-center gap-2 text-xs font-semibold px-2.5 py-1 rounded-lg bg-[#20C878]/10 text-[#20C878] border border-[#20C878]/20">
+        <div className="flex shrink-0 items-center gap-2 text-[10px] sm:text-xs font-semibold px-2.5 py-1 rounded-lg bg-[#20C878]/10 text-[#20C878] border border-[#20C878]/20">
           <span>{sortedPlayers.length} / 11 Picked</span>
         </div>
       </div>
 
-      {/* Players List Table */}
+      {/* Selected players */}
       {sortedPlayers.length === 0 ? (
         <div className="p-12 text-center text-[#929BA8] flex flex-col items-center justify-center">
           <div className="w-14 h-14 rounded-2xl bg-[#181F29] flex items-center justify-center mb-3 text-2xl border border-white/5">
@@ -75,7 +75,7 @@ export const PlayingXITable: React.FC<PlayingXITableProps> = ({
           </p>
         </div>
       ) : (
-        <div className="divide-y divide-white/5">
+        <div className="grid grid-cols-1 gap-3 p-3 sm:grid-cols-2 lg:grid-cols-4">
           {sortedPlayers.map((item, index) => {
             const player = playersMap.get(item.playerId);
             if (!player) return null;
@@ -83,58 +83,55 @@ export const PlayingXITable: React.FC<PlayingXITableProps> = ({
             return (
               <div
                 key={item.playerId}
-                className="flex items-center justify-between p-3.5 hover:bg-[#181F29]/60 transition-colors group"
+                className="relative min-h-40 min-w-0 rounded-xl border border-white/5 bg-[#181F29] p-3 pr-[4.5rem] transition-colors hover:border-white/15"
               >
-                {/* Left: Reorder Controls + Order Number */}
-                <div className="flex items-center gap-2.5">
-                  <div className="flex flex-col items-center justify-center">
+                <div className="flex items-center">
+                  <div className="flex shrink-0 items-center gap-0.5">
+                    <span className="w-4 text-center text-[10px] font-bold font-heading text-[#20C878]">{index + 1}</span>
                     <button
                       type="button"
                       disabled={index === 0}
                       onClick={() => onMovePlayer(index, index - 1)}
-                      className="p-1 text-[#929BA8] hover:text-white disabled:opacity-20 disabled:hover:text-[#929BA8]"
+                      className="rounded p-1 text-[#929BA8] hover:text-white disabled:opacity-20"
                       title="Move Up"
+                      aria-label={`Move ${player.displayName} up`}
                     >
-                      <ChevronUp className="w-3.5 h-3.5" />
+                      <ChevronUp className="h-3 w-3" />
                     </button>
-                    <span className="text-xs font-bold font-heading text-[#20C878] w-5 text-center">
-                      {index + 1}
-                    </span>
                     <button
                       type="button"
                       disabled={index === sortedPlayers.length - 1}
                       onClick={() => onMovePlayer(index, index + 1)}
-                      className="p-1 text-[#929BA8] hover:text-white disabled:opacity-20 disabled:hover:text-[#929BA8]"
+                      className="rounded p-1 text-[#929BA8] hover:text-white disabled:opacity-20"
                       title="Move Down"
+                      aria-label={`Move ${player.displayName} down`}
                     >
-                      <ChevronDown className="w-3.5 h-3.5" />
+                      <ChevronDown className="h-3 w-3" />
                     </button>
                   </div>
-
-                  {/* Player Avatar */}
+                </div>
+                <div className="absolute bottom-0 left-3 right-[4.5rem] flex min-h-24 min-w-0 items-center gap-2">
                   <div
                     onClick={() => onViewPlayer && onViewPlayer(player)}
-                    className="relative w-11 h-11 rounded-xl overflow-hidden bg-[#181F29] border border-white/10 shrink-0 cursor-pointer"
+                    className="relative h-36 w-28 shrink-0 cursor-pointer lg:h-24 lg:w-16"
                   >
                     <img
                       src={player.imageUrl}
                       alt={player.displayName}
-                      className="w-full h-full object-cover"
+                      className="h-full w-full object-contain object-bottom"
                     />
                     {player.isOverseasIPL && (
                       <span
                         title="Overseas Player"
-                        className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-purple-500 border border-black"
+                        className="absolute bottom-1 right-0 h-3 w-3 rounded-full border border-black bg-purple-500"
                       />
                     )}
                   </div>
-
-                  {/* Player Name & Role */}
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex min-w-0 items-center gap-2">
                       <span
                         onClick={() => onViewPlayer && onViewPlayer(player)}
-                        className="text-sm font-bold text-white truncate hover:text-[#20C878] cursor-pointer"
+                        className="min-w-0 truncate text-sm font-bold text-white hover:text-[#20C878] cursor-pointer"
                       >
                         {player.displayName}
                       </span>
@@ -144,25 +141,31 @@ export const PlayingXITable: React.FC<PlayingXITableProps> = ({
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-[10px] text-[#929BA8]">
-                        {player.primaryRole} • {player.specialization}
-                      </span>
-                      <span className="hidden md:inline text-[9px] text-white/40 italic">
-                        ({getBattingSlotSuggestion(index + 1)})
-                      </span>
-                    </div>
+                    <span className="mt-0.5 block truncate text-[10px] text-[#929BA8]">
+                      {player.primaryRole} • {player.specialization}
+                    </span>
+                    <span className="block truncate text-[9px] italic text-white/40">
+                      ({getBattingSlotSuggestion(index + 1)})
+                    </span>
                   </div>
                 </div>
 
-                {/* Right: Role Badges (C, VC, WK) + Rating + Remove */}
-                <div className="flex items-center gap-2">
+                <div className="absolute bottom-2 right-2 top-2 flex w-12 flex-col items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => onRemovePlayer(item.playerId)}
+                    title="Remove Player from Lineup"
+                    aria-label={`Remove ${player.displayName} from lineup`}
+                    className="rounded p-1.5 text-[#929BA8] transition-colors hover:bg-rose-500/10 hover:text-rose-400"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                   {/* Captain Toggle */}
                   <button
                     type="button"
                     onClick={() => onSetCaptain(item.playerId)}
                     title={item.isCaptain ? 'Captain (Click to change)' : 'Appoint as Captain'}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                    className={`flex w-12 items-center justify-center gap-1 rounded-lg px-1 py-1 text-[10px] font-bold transition-all cursor-pointer ${
                       item.isCaptain
                         ? 'bg-[#F9CD05] text-[#090B0F] shadow-md shadow-[#F9CD05]/20'
                         : 'bg-white/5 text-[#929BA8] hover:text-white hover:bg-white/10'
@@ -179,7 +182,7 @@ export const PlayingXITable: React.FC<PlayingXITableProps> = ({
                     title={
                       item.isViceCaptain ? 'Vice Captain (Click to change)' : 'Appoint as Vice Captain'
                     }
-                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                    className={`flex w-12 items-center justify-center gap-1 rounded-lg px-1 py-1 text-[10px] font-bold transition-all cursor-pointer ${
                       item.isViceCaptain
                         ? 'bg-[#3BA7FF] text-[#090B0F] shadow-md shadow-[#3BA7FF]/20'
                         : 'bg-white/5 text-[#929BA8] hover:text-white hover:bg-white/10'
@@ -196,7 +199,7 @@ export const PlayingXITable: React.FC<PlayingXITableProps> = ({
                     title={
                       item.isWicketkeeper ? 'Designated Wicketkeeper' : 'Assign Wicketkeeping Gloves'
                     }
-                    className={`px-2 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                    className={`flex w-12 items-center justify-center gap-1 rounded-lg px-1 py-1 text-[10px] font-bold transition-all cursor-pointer ${
                       item.isWicketkeeper
                         ? 'bg-[#10B981] text-white shadow-md shadow-[#10B981]/20'
                         : 'bg-white/5 text-[#929BA8] hover:text-white hover:bg-white/10'
@@ -206,20 +209,9 @@ export const PlayingXITable: React.FC<PlayingXITableProps> = ({
                     <span>WK</span>
                   </button>
 
-                  {/* Overall Rating Disc */}
-                  <div className="hidden sm:flex items-center justify-center w-7 h-7 rounded-lg bg-black/40 text-xs font-bold font-heading text-[#20C878]">
+                  <div className="flex h-7 w-12 items-center justify-center rounded-lg bg-black/40 text-xs font-bold font-heading text-[#20C878]">
                     {player.overallRating}
                   </div>
-
-                  {/* Remove Button */}
-                  <button
-                    type="button"
-                    onClick={() => onRemovePlayer(item.playerId)}
-                    title="Remove Player from Lineup"
-                    className="p-1.5 rounded-lg text-[#929BA8] hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
                 </div>
               </div>
             );

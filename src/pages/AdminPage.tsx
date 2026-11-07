@@ -60,6 +60,7 @@ export const AdminPage: React.FC = () => {
   });
 
   const [competitionName, setCompetitionName] = useState('');
+  const [editingCompetitionId, setEditingCompetitionId] = useState<string | null>(null);
   const [competitionShortName, setCompetitionShortName] = useState('');
   const [competitionCountry, setCompetitionCountry] = useState('');
   const [competitionLogo, setCompetitionLogo] = useState('');
@@ -71,6 +72,7 @@ export const AdminPage: React.FC = () => {
   const [competitionDescription, setCompetitionDescription] = useState('');
   const [competitionRules, setCompetitionRules] = useState<CompetitionRules>({ ...DEFAULT_COMPETITION_RULES });
   const [teamName, setTeamName] = useState('');
+  const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
   const [teamShortName, setTeamShortName] = useState('');
   const [teamCode, setTeamCode] = useState('');
   const [teamCompetitionId, setTeamCompetitionId] = useState('');
@@ -162,7 +164,7 @@ export const AdminPage: React.FC = () => {
     setUploadingCompetitionLogo(true);
     try {
       setCompetitionLogo(await uploadCompetitionLogo(file));
-      setCompetitionLogoMessage('Logo uploaded. Create the competition to save it.');
+      setCompetitionLogoMessage('Logo uploaded. Save the competition to apply it.');
     } catch (error) {
       setCompetitionLogoMessage(error instanceof Error ? error.message : 'Competition logo upload failed.');
     } finally {
@@ -186,7 +188,7 @@ export const AdminPage: React.FC = () => {
     setUploadingTeamLogo(true);
     try {
       setTeamLogo(await uploadTeamLogo(file));
-      setTeamLogoMessage('Logo uploaded. Create the team to save it.');
+      setTeamLogoMessage('Logo uploaded. Save the team to apply it.');
     } catch (error) {
       setTeamLogoMessage(error instanceof Error ? error.message : 'Team logo upload failed.');
     } finally {
@@ -203,13 +205,14 @@ export const AdminPage: React.FC = () => {
       setFormError('Enter a competition name.');
       return;
     }
-    if (competitions.some((competition) => competition.slug === slug)) {
+    if (competitions.some((competition) => competition.slug === slug && competition.id !== editingCompetitionId)) {
       setFormError('A competition with that name already exists.');
       return;
     }
 
+    const existingCompetition = competitions.find((competition) => competition.id === editingCompetitionId);
     storageService.saveCompetition({
-      id: `comp-${slug}`,
+      id: existingCompetition?.id ?? `comp-${slug}`,
       name: competitionName.trim(),
       shortName: competitionShortName.trim(),
       slug,
@@ -217,17 +220,24 @@ export const AdminPage: React.FC = () => {
       competitionType,
       format: competitionFormat,
       country: competitionCountry.trim(),
-      seasons: [competitionSeason.trim()],
+      seasons: existingCompetition
+        ? Array.from(new Set([...existingCompetition.seasons, competitionSeason.trim()]))
+        : [competitionSeason.trim()],
       currentSeason: competitionSeason.trim(),
       description: competitionDescription.trim(),
       rules: { ...competitionRules },
     });
+    setEditingCompetitionId(null);
     setCompetitionName('');
     setCompetitionShortName('');
     setCompetitionCountry('');
     setCompetitionLogo('');
     setCompetitionLogoMessage('');
     setCompetitionDescription('');
+    setCompetitionType('Franchise');
+    setCompetitionFormat('T20');
+    setCompetitionSeason(new Date().getFullYear().toString());
+    setCompetitionRules({ ...DEFAULT_COMPETITION_RULES });
     setFormError('');
   };
 
@@ -235,13 +245,19 @@ export const AdminPage: React.FC = () => {
     e.preventDefault();
     if (!requireAdminAccess()) return;
     const code = teamCode.trim().toUpperCase();
-    if (teams.some((team) => team.code.toUpperCase() === code)) {
+    if (teams.some((team) => team.code.toUpperCase() === code && team.id !== editingTeamId)) {
       setFormError('A team with that code already exists.');
       return;
     }
 
+    const existingTeam = teams.find((team) => team.id === editingTeamId);
+    if (!teamName.trim() || !code) {
+      setFormError('Enter a team name and team code.');
+      return;
+    }
+
     storageService.saveTeam({
-      id: `team-${code.toLowerCase()}`,
+      id: existingTeam?.id ?? `team-${code.toLowerCase()}`,
       name: teamName.trim(),
       shortName: teamShortName.trim(),
       code,
@@ -251,15 +267,83 @@ export const AdminPage: React.FC = () => {
       primaryColor: teamPrimaryColor,
       secondaryColor: teamSecondaryColor,
       homeGround: teamHomeGround.trim(),
-      championships: [],
+      championships: existingTeam?.championships ?? [],
       establishedYear: teamEstablishedYear,
     });
+    setEditingTeamId(null);
     setTeamName('');
     setTeamShortName('');
     setTeamCode('');
     setTeamLogo('');
     setTeamLogoMessage('');
+    setTeamCompetitionId('');
+    setTeamType('Franchise');
+    setTeamPrimaryColor('#20C878');
+    setTeamSecondaryColor('#181F29');
     setTeamHomeGround('');
+    setTeamEstablishedYear(new Date().getFullYear());
+    setFormError('');
+  };
+
+  const handleEditTeam = (team: TeamEntity) => {
+    setEditingTeamId(team.id);
+    setTeamName(team.name);
+    setTeamShortName(team.shortName);
+    setTeamCode(team.code);
+    setTeamCompetitionId(team.competitionId);
+    setTeamType(team.type);
+    setTeamLogo(team.logo);
+    setTeamPrimaryColor(team.primaryColor);
+    setTeamSecondaryColor(team.secondaryColor);
+    setTeamHomeGround(team.homeGround);
+    setTeamEstablishedYear(team.establishedYear);
+    setTeamLogoMessage('');
+    setFormError('');
+  };
+
+  const handleEditCompetition = (competition: Competition) => {
+    setEditingCompetitionId(competition.id);
+    setCompetitionName(competition.name);
+    setCompetitionShortName(competition.shortName);
+    setCompetitionCountry(competition.country);
+    setCompetitionLogo(competition.logo);
+    setCompetitionType(competition.competitionType);
+    setCompetitionFormat(competition.format);
+    setCompetitionSeason(competition.currentSeason);
+    setCompetitionDescription(competition.description);
+    setCompetitionRules({ ...competition.rules });
+    setCompetitionLogoMessage('');
+    setFormError('');
+  };
+
+  const cancelTeamEdit = () => {
+    setEditingTeamId(null);
+    setTeamName('');
+    setTeamShortName('');
+    setTeamCode('');
+    setTeamCompetitionId('');
+    setTeamType('Franchise');
+    setTeamLogo('');
+    setTeamPrimaryColor('#20C878');
+    setTeamSecondaryColor('#181F29');
+    setTeamHomeGround('');
+    setTeamEstablishedYear(new Date().getFullYear());
+    setTeamLogoMessage('');
+    setFormError('');
+  };
+
+  const cancelCompetitionEdit = () => {
+    setEditingCompetitionId(null);
+    setCompetitionName('');
+    setCompetitionShortName('');
+    setCompetitionCountry('');
+    setCompetitionLogo('');
+    setCompetitionType('Franchise');
+    setCompetitionFormat('T20');
+    setCompetitionSeason(new Date().getFullYear().toString());
+    setCompetitionDescription('');
+    setCompetitionRules({ ...DEFAULT_COMPETITION_RULES });
+    setCompetitionLogoMessage('');
     setFormError('');
   };
 
@@ -563,8 +647,8 @@ export const AdminPage: React.FC = () => {
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
           <form onSubmit={handleSaveTeam} className="flex flex-col gap-4 bg-[#121720] p-6 rounded-3xl border border-white/10">
             <div>
-              <h3 className="text-base font-bold font-heading text-white">Create a team</h3>
-              <p className="text-xs text-[#929BA8] mt-1">Add a franchise, national side, or domestic team to the shared catalog.</p>
+              <h3 className="text-base font-bold font-heading text-white">{editingTeamId ? 'Edit team' : 'Create a team'}</h3>
+              <p className="text-xs text-[#929BA8] mt-1">{editingTeamId ? 'Update this team’s details in the shared catalog.' : 'Add a franchise, national side, or domestic team to the shared catalog.'}</p>
             </div>
             <label className="text-xs text-[#929BA8]">Team name
               <input required value={teamName} onChange={(e) => setTeamName(e.target.value)} className="mt-1 w-full p-2.5 bg-[#181F29] border border-white/10 rounded-xl text-white" />
@@ -619,7 +703,10 @@ export const AdminPage: React.FC = () => {
               <input value={teamHomeGround} onChange={(e) => setTeamHomeGround(e.target.value)} className="mt-1 w-full p-2.5 bg-[#181F29] border border-white/10 rounded-xl text-white" />
             </label>
             {formError && activeTab === 'teams' && <p role="alert" className="text-xs text-rose-400">{formError}</p>}
-            <button type="submit" className="px-4 py-2.5 bg-[#20C878] text-[#090B0F] font-bold text-xs rounded-xl">Create team</button>
+            <div className="flex flex-wrap gap-2">
+              <button type="submit" className="px-4 py-2.5 bg-[#20C878] text-[#090B0F] font-bold text-xs rounded-xl">{editingTeamId ? 'Update team' : 'Create team'}</button>
+              {editingTeamId && <button type="button" onClick={cancelTeamEdit} className="px-4 py-2.5 bg-white/5 text-white font-semibold text-xs rounded-xl hover:bg-white/10">Cancel</button>}
+            </div>
           </form>
 
           <section className="bg-[#121720] p-6 rounded-3xl border border-white/10">
@@ -628,10 +715,11 @@ export const AdminPage: React.FC = () => {
               {teams.map((team) => (
                 <div key={team.id} className="flex items-center gap-3 py-3">
                   {team.logo ? <img src={team.logo} alt="" className="w-10 h-10 rounded-xl object-cover" /> : <div className="w-10 h-10 rounded-xl bg-[#181F29] grid place-items-center text-xs font-bold text-[#20C878]">{team.code}</div>}
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold text-white">{team.name} <span className="text-[#929BA8]">({team.code})</span></p>
                     <p className="text-xs text-[#929BA8]">{team.type}{team.competitionId ? ` · ${storageService.getCompetitionById(team.competitionId)?.name ?? team.competitionId}` : ''}</p>
                   </div>
+                  <button type="button" onClick={() => handleEditTeam(team)} className="shrink-0 rounded-lg bg-white/5 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/10">Edit</button>
                 </div>
               ))}
               {teams.length === 0 && <p className="text-sm text-[#929BA8]">No teams have been created yet.</p>}
@@ -644,8 +732,8 @@ export const AdminPage: React.FC = () => {
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
           <form onSubmit={handleSaveCompetition} className="flex flex-col gap-4 bg-[#121720] p-6 rounded-3xl border border-white/10">
             <div>
-              <h3 className="text-base font-bold font-heading text-white">Create a competition</h3>
-              <p className="text-xs text-[#929BA8] mt-1">Configure its format, season, and XI selection rules.</p>
+              <h3 className="text-base font-bold font-heading text-white">{editingCompetitionId ? 'Edit competition' : 'Create a competition'}</h3>
+              <p className="text-xs text-[#929BA8] mt-1">{editingCompetitionId ? 'Update the competition details, season, and XI selection rules.' : 'Configure its format, season, and XI selection rules.'}</p>
             </div>
             <label className="text-xs text-[#929BA8]">Competition name
               <input required value={competitionName} onChange={(e) => setCompetitionName(e.target.value)} className="mt-1 w-full p-2.5 bg-[#181F29] border border-white/10 rounded-xl text-white" />
@@ -712,7 +800,10 @@ export const AdminPage: React.FC = () => {
               <label className="flex items-center gap-2"><input type="checkbox" checked={competitionRules.requireViceCaptain} onChange={(e) => updateCompetitionRule('requireViceCaptain', e.target.checked)} /> Require vice-captain</label>
             </div>
             {formError && activeTab === 'competitions' && <p role="alert" className="text-xs text-rose-400">{formError}</p>}
-            <button type="submit" className="px-4 py-2.5 bg-[#20C878] text-[#090B0F] font-bold text-xs rounded-xl">Create competition</button>
+            <div className="flex flex-wrap gap-2">
+              <button type="submit" className="px-4 py-2.5 bg-[#20C878] text-[#090B0F] font-bold text-xs rounded-xl">{editingCompetitionId ? 'Update competition' : 'Create competition'}</button>
+              {editingCompetitionId && <button type="button" onClick={cancelCompetitionEdit} className="px-4 py-2.5 bg-white/5 text-white font-semibold text-xs rounded-xl hover:bg-white/10">Cancel</button>}
+            </div>
           </form>
 
           <section className="bg-[#121720] p-6 rounded-3xl border border-white/10">
@@ -722,10 +813,11 @@ export const AdminPage: React.FC = () => {
                 <div key={competition.id} className="py-3">
                   <div className="flex items-center gap-3">
                     {competition.logo && <img src={competition.logo} alt="" className="h-10 w-10 rounded-xl border border-white/10 object-contain" />}
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-bold text-white">{competition.name} <span className="text-[#929BA8]">({competition.shortName})</span></p>
                       <p className="text-xs text-[#929BA8]">{competition.competitionType} · {competition.format} · {competition.currentSeason}</p>
                     </div>
+                    <button type="button" onClick={() => handleEditCompetition(competition)} className="shrink-0 rounded-lg bg-white/5 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/10">Edit</button>
                   </div>
                 </div>
               ))}

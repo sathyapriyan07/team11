@@ -242,6 +242,7 @@ export interface UserTeam {
   description: string;
   mode: BuilderMode;
   competitionId?: string;
+  teamId?: string;
   season?: string;
   franchiseId?: string;
   customPoolId?: string;

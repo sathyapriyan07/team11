@@ -27,32 +27,6 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
       : format === 'TEST'
       ? player.formatRatings.TEST
       : player.formatRatings.T20;
-  const formatStats =
-    format === 'ODI'
-      ? player.stats.ODI
-      : format === 'TEST'
-      ? player.stats.TEST
-      : player.stats.T20;
-  const battingDenominator = formatStats.innings || formatStats.matches;
-  const battingAverage =
-    battingDenominator > 0 ? Number((formatStats.runs / battingDenominator).toFixed(2)) : 0;
-
-  // Role color token
-  const getRoleBadgeColor = () => {
-    switch (player.primaryRole) {
-      case 'Wicketkeeper':
-        return 'text-amber-400 bg-amber-400/10 border-amber-400/20';
-      case 'Batter':
-        return 'text-sky-400 bg-sky-400/10 border-sky-400/20';
-      case 'All-rounder':
-        return 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20';
-      case 'Bowler':
-        return 'text-rose-400 bg-rose-400/10 border-rose-400/20';
-      default:
-        return 'text-gray-400 bg-gray-400/10 border-gray-400/20';
-    }
-  };
-
   if (!compact) {
     return (
       <div
@@ -73,12 +47,18 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
         aria-pressed={onSelect ? isSelected : undefined}
         aria-label={onSelect ? `${isSelected ? 'Remove' : 'Add'} ${player.displayName} ${isSelected ? 'from' : 'to'} team` : undefined}
       >
-        <img
+        {player.imageUrl ? (
+          <img
             src={player.imageUrl}
             alt={player.displayName}
             className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-105"
             loading="lazy"
-        />
+          />
+        ) : (
+          <div aria-hidden="true" className="absolute inset-0 grid place-items-center bg-[#181F29] text-5xl font-bold text-white/20">
+            {player.displayName.slice(0, 1).toUpperCase()}
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/25 to-transparent" />
         <div className="relative z-10 flex h-full min-h-0 flex-col p-2 sm:p-3">
           <div className="absolute right-2 top-2 flex items-center gap-1 sm:right-3 sm:top-3">
@@ -135,26 +115,9 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
                 </button>
               ) : player.displayName}
             </h4>
-            <span
-              className={`mt-0.5 inline-block max-w-full truncate rounded border bg-black/40 px-1 py-0.5 text-[7px] font-semibold sm:px-1.5 sm:text-[8px] ${getRoleBadgeColor()}`}
-            >
+            <span className="mt-0.5 block truncate text-[7px] font-semibold text-white/75 sm:text-[8px]">
               {player.primaryRole}
             </span>
-          </div>
-
-          <div className="mt-1 grid grid-cols-3 gap-1 pt-1 text-[7px] leading-tight sm:mt-2 sm:pt-1.5 sm:text-[9px]">
-              <div className="min-w-0">
-                <span className="block text-white/75">Runs</span>
-                <span className="block truncate font-bold text-white drop-shadow">{formatStats.runs.toLocaleString()}</span>
-              </div>
-              <div className="min-w-0">
-                <span className="block text-white/75">Average</span>
-                <span className="block truncate font-bold text-white drop-shadow">{battingAverage}</span>
-              </div>
-              <div className="min-w-0">
-                <span className="block text-white/75">Strike rate</span>
-                <span className="block truncate font-bold text-white drop-shadow">{formatStats.strikeRate}</span>
-              </div>
           </div>
         </div>
       </div>
@@ -199,12 +162,18 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
       {/* Main Avatar & Identity */}
       <div className="flex items-center gap-3.5 my-1">
         <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-[#121720] border border-white/10 shrink-0">
-          <img
-            src={player.imageUrl}
-            alt={player.displayName}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            loading="lazy"
-          />
+          {player.imageUrl ? (
+            <img
+              src={player.imageUrl}
+              alt={player.displayName}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              loading="lazy"
+            />
+          ) : (
+            <div aria-hidden="true" className="grid h-full w-full place-items-center text-lg font-bold text-white/50">
+              {player.displayName.slice(0, 1).toUpperCase()}
+            </div>
+          )}
           {isSelected && (
             <div className="absolute inset-0 bg-[#20C878]/30 flex items-center justify-center backdrop-blur-[1px]">
               <Check className="w-5 h-5 text-white stroke-[3]" />
@@ -217,9 +186,7 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
             {player.displayName}
           </h4>
           <div className="flex items-center gap-1.5 mt-1">
-            <span
-              className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${getRoleBadgeColor()}`}
-            >
+            <span className="text-[10px] font-semibold text-white/80">
               {player.primaryRole}
             </span>
             <span className="text-[11px] text-[#929BA8] truncate">
@@ -228,30 +195,6 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
           </div>
         </div>
       </div>
-
-      {/* Attributes Bar Snippet */}
-      {!compact && (
-        <div className="grid grid-cols-3 gap-1.5 py-2.5 my-2 border-y border-white/5 text-[11px] text-center">
-          <div className="bg-[#121720] p-1 rounded-lg">
-            <span className="text-[#929BA8] block text-[9px] uppercase">Bat</span>
-            <span className="font-bold text-white">
-              {player.attributes.powerHitting}
-            </span>
-          </div>
-          <div className="bg-[#121720] p-1 rounded-lg">
-            <span className="text-[#929BA8] block text-[9px] uppercase">Bowl</span>
-            <span className="font-bold text-white">
-              {player.attributes.accuracy}
-            </span>
-          </div>
-          <div className="bg-[#121720] p-1 rounded-lg">
-            <span className="text-[#929BA8] block text-[9px] uppercase">Field</span>
-            <span className="font-bold text-white">
-              {player.attributes.catching}
-            </span>
-          </div>
-        </div>
-      )}
 
       {/* Action Footers */}
       <div className="flex items-center gap-2 mt-2 pt-1">

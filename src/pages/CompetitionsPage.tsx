@@ -9,6 +9,7 @@ export const CompetitionsPage: React.FC = () => {
   const [teams, setTeams] = useState<TeamEntity[]>(() => storageService.getTeams());
   const [players, setPlayers] = useState<Player[]>(() => storageService.getPlayers());
   const [selectedCompId, setSelectedCompId] = useState<string>('comp-ipl');
+  const [selectedCompetitionType, setSelectedCompetitionType] = useState<Competition['competitionType']>('Franchise');
 
   useEffect(() => {
     setCompetitions(storageService.getCompetitions());
@@ -16,41 +17,73 @@ export const CompetitionsPage: React.FC = () => {
     setPlayers(storageService.getPlayers());
   }, []);
 
+  const competitionTypes: Competition['competitionType'][] = ['Franchise', 'Domestic', 'International'];
+  const visibleCompetitions = competitions.filter((competition) => competition.competitionType === selectedCompetitionType);
   const activeComp =
-    competitions.find((c) => c.id === selectedCompId) ||
-    competitions[0] ||
-    storageService.getCompetitions()[0];
+    visibleCompetitions.find((competition) => competition.id === selectedCompId) ||
+    visibleCompetitions[0];
   const compTeams = activeComp ? teams.filter((t) => t.competitionId === activeComp.id) : [];
 
   const playersMap = new Map<string, Player>();
   players.forEach((p) => playersMap.set(p.id, p));
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex flex-col gap-6 sm:gap-8">
       {/* Page Title */}
       <div>
-        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#20C878] mb-1">
+        <div className="flex items-center gap-2 text-[10px] sm:text-xs font-bold uppercase tracking-wider text-[#20C878] mb-1">
           <Trophy className="w-4 h-4" />
           <span>Tournaments & Leagues</span>
         </div>
-        <h1 className="text-3xl sm:text-4xl font-extrabold font-heading text-white">
+        <h1 className="text-xl sm:text-3xl font-extrabold font-heading text-white">
           Cricket Competitions & Squads
         </h1>
-        <p className="text-xs sm:text-sm text-[#929BA8] mt-1">
+        <p className="text-[10px] sm:text-sm text-[#929BA8] mt-1">
           Explore official rules, quotas, season-specific rosters, and participating teams across global cricket.
         </p>
       </div>
 
-      {/* Competitions Selector Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        {competitions.map((comp) => {
-          const isSelected = comp.id === selectedCompId;
+      {/* Competition type tabs */}
+      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Competition type">
+        {competitionTypes.map((type) => {
+          const count = competitions.filter((competition) => competition.competitionType === type).length;
+          const isSelected = selectedCompetitionType === type;
+          return (
+            <button
+              key={type}
+              id={`competition-type-${type.toLowerCase()}`}
+              type="button"
+              role="tab"
+              aria-selected={isSelected}
+              aria-controls="competition-list"
+              onClick={() => {
+                setSelectedCompetitionType(type);
+                const firstCompetition = competitions.find((competition) => competition.competitionType === type);
+                setSelectedCompId(firstCompetition?.id ?? '');
+              }}
+              className={`rounded-full border px-4 py-2 text-xs font-bold transition-colors sm:text-sm ${
+                isSelected
+                  ? 'border-[#20C878] bg-[#20C878] text-[#090B0F]'
+                  : 'border-white/10 bg-[#121720] text-[#929BA8] hover:border-white/20 hover:text-white'
+              }`}
+            >
+              {type} <span className={isSelected ? 'ml-1 opacity-70' : 'ml-1 opacity-60'}>{count}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Competitions in the selected type */}
+      {visibleCompetitions.length > 0 ? (
+      <div id="competition-list" role="tabpanel" aria-labelledby={`competition-type-${selectedCompetitionType.toLowerCase()}`} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3">
+        {visibleCompetitions.map((comp) => {
+          const isSelected = comp.id === activeComp?.id;
           return (
             <button
               key={comp.id}
               type="button"
               onClick={() => setSelectedCompId(comp.id)}
-              className={`p-4 rounded-2xl border text-left transition-all ${
+              className={`p-2.5 sm:p-4 rounded-2xl border text-left transition-all ${
                 isSelected
                   ? 'border-[#20C878] bg-[#182420] text-white shadow-xl shadow-[#20C878]/10'
                   : 'border-white/5 bg-[#121720] text-[#929BA8] hover:border-white/20'
@@ -61,36 +94,40 @@ export const CompetitionsPage: React.FC = () => {
                   {comp.format}
                 </span>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-[#20C878]">{comp.competitionType}</span>
                   {comp.logo && <img src={comp.logo} alt="" className="h-7 w-7 rounded-md object-contain" />}
                 </div>
               </div>
-              <h3 className="text-base font-bold text-white font-heading truncate">{comp.name}</h3>
-              <p className="text-xs text-[#929BA8] mt-1">{comp.country} • {comp.currentSeason}</p>
+              <h3 className="text-xs sm:text-base font-bold text-white font-heading truncate">{comp.name}</h3>
+              <p className="text-[10px] sm:text-xs text-[#929BA8] mt-1">{comp.country} • {comp.currentSeason}</p>
             </button>
           );
         })}
       </div>
+      ) : (
+        <p className="rounded-2xl border border-white/10 bg-[#121720] p-4 text-xs text-[#929BA8]">
+          No {selectedCompetitionType.toLowerCase()} competitions are available yet.
+        </p>
+      )}
 
       {/* Active Competition Deep Dive */}
       {activeComp && (
-        <div className="flex flex-col gap-6 bg-[#121720] border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl">
+        <div className="flex flex-col gap-5 sm:gap-6 bg-[#121720] border border-white/10 rounded-3xl p-4 sm:p-8 shadow-2xl">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-white/5">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#20C878]">
+                <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-[#20C878]">
                   {activeComp.competitionType} League
                 </span>
-                <span className="text-xs text-[#929BA8]">•</span>
-                <span className="text-xs text-[#929BA8]">{activeComp.country}</span>
+                <span className="text-[10px] sm:text-xs text-[#929BA8]">•</span>
+                <span className="text-[10px] sm:text-xs text-[#929BA8]">{activeComp.country}</span>
               </div>
-              <div className="mt-1 flex items-center gap-3">
-                {activeComp.logo && <img src={activeComp.logo} alt="" className="h-12 w-12 shrink-0 rounded-xl object-contain" />}
-                <h2 className="text-2xl font-extrabold font-heading text-white sm:text-3xl">
+              <div className="mt-1 flex items-center gap-2 sm:gap-3">
+                {activeComp.logo && <img src={activeComp.logo} alt="" className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 rounded-xl object-contain" />}
+                <h2 className="text-lg sm:text-2xl font-extrabold font-heading text-white">
                   {activeComp.name}
                 </h2>
               </div>
-              <p className="text-xs sm:text-sm text-[#929BA8] mt-2 max-w-2xl leading-relaxed">
+              <p className="text-[10px] sm:text-sm text-[#929BA8] mt-2 max-w-2xl leading-relaxed">
                 {activeComp.description}
               </p>
             </div>
@@ -98,7 +135,7 @@ export const CompetitionsPage: React.FC = () => {
             <div className="flex flex-wrap items-center gap-3">
               <Link
                 to={`/builder/${activeComp.competitionType === 'Franchise' ? 'franchise' : 'international'}`}
-                className="px-5 py-2.5 bg-[#20C878] hover:bg-[#1bb56c] text-[#090B0F] font-bold text-xs rounded-xl shadow-lg shadow-[#20C878]/20 flex items-center gap-2"
+                className="px-4 sm:px-5 py-2 sm:py-2.5 bg-[#20C878] hover:bg-[#1bb56c] text-[#090B0F] font-bold text-[11px] sm:text-xs rounded-xl shadow-lg shadow-[#20C878]/20 flex items-center gap-2"
               >
                 <Sliders className="w-4 h-4" />
                 <span>Build Lineup for {activeComp.shortName}</span>
@@ -115,25 +152,25 @@ export const CompetitionsPage: React.FC = () => {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
               <div className="bg-[#181F29] p-3 rounded-xl border border-white/5">
                 <span className="text-[#929BA8] block text-[10px] uppercase">Starting Players</span>
-                <span className="text-base font-bold text-white mt-1 block">
+                <span className="text-xs sm:text-base font-bold text-white mt-1 block">
                   {activeComp.rules.exactPlayersCount} Players
                 </span>
               </div>
               <div className="bg-[#181F29] p-3 rounded-xl border border-white/5">
                 <span className="text-[#929BA8] block text-[10px] uppercase">Overseas Player Cap</span>
-                <span className="text-base font-bold text-[#20C878] mt-1 block">
+                <span className="text-xs sm:text-base font-bold text-[#20C878] mt-1 block">
                   Max {activeComp.rules.maxOverseas} Foreigners
                 </span>
               </div>
               <div className="bg-[#181F29] p-3 rounded-xl border border-white/5">
                 <span className="text-[#929BA8] block text-[10px] uppercase">Impact Player Rule</span>
-                <span className="text-base font-bold text-amber-400 mt-1 block">
+                <span className="text-xs sm:text-base font-bold text-amber-400 mt-1 block">
                   {activeComp.rules.allowImpactPlayer ? 'Allowed (Tactical Sub)' : 'Not Allowed'}
                 </span>
               </div>
               <div className="bg-[#181F29] p-3 rounded-xl border border-white/5">
                 <span className="text-[#929BA8] block text-[10px] uppercase">Minimum Bowlers</span>
-                <span className="text-base font-bold text-sky-400 mt-1 block">
+                <span className="text-xs sm:text-base font-bold text-sky-400 mt-1 block">
                   {activeComp.rules.minBowlersOrAllRounders} Options
                 </span>
               </div>
