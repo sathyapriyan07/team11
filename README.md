@@ -27,6 +27,8 @@ The app starts with an empty catalog; no cricket records are bundled as seed dat
 
 Player creation and editing use dedicated admin pages, linked from the player registry.
 
+The admin panel's **Bulk Data Importer** includes a Wikipedia import workflow for players, teams, competitions, and player career statistics. Imports are previewed for review before saving; statistics are matched from Wikipedia career tables and only selected formats with extracted values are merged into existing player records.
+
 The shared catalog is publicly readable and editable only by authorized admins. Uploaded player images are publicly viewable; uploads are admin-only and limited to 5 MB JPEG, PNG, WebP, or GIF files. Custom pools, saved playing XIs, likes, and bookmarks remain in browser storage because they are user-specific and this setup does not add end-user accounts. If Supabase variables are absent, the app continues to use browser storage.
 
 # team11

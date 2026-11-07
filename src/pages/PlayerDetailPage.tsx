@@ -16,11 +16,16 @@ export const PlayerDetailPage: React.FC = () => {
   const navigationState = location.state as { returnTo?: string; selectForXI?: boolean; isInTeam?: boolean } | null;
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [statFormat, setStatFormat] = useState<'IPL' | 'T20' | 'ODI' | 'TEST'>('IPL');
+  const [bioExpanded, setBioExpanded] = useState(false);
 
   useEffect(() => {
     const refreshPlayer = () => setPlayer(playerId ? storageService.getPlayerById(playerId) : undefined);
     refreshPlayer();
     return storageService.subscribe(refreshPlayer);
+  }, [playerId]);
+
+  useEffect(() => {
+    setBioExpanded(false);
   }, [playerId]);
 
   if (!player) {
@@ -161,9 +166,31 @@ export const PlayerDetailPage: React.FC = () => {
                 <h4 className="text-xs font-bold uppercase tracking-wider text-[#929BA8] mb-2">
                   Player Biography
                 </h4>
-                <p className="text-sm text-[#F5F7FA] leading-relaxed bg-[#181F29] p-4 rounded-xl border border-white/5">
-                  {player.bio}
-                </p>
+                <div className="relative rounded-xl border border-white/5 bg-[#181F29] p-4">
+                  <p
+                    id="player-biography"
+                    className={`text-xs leading-relaxed text-[#F5F7FA] sm:text-sm ${
+                      !bioExpanded && player.bio.length > 200 ? 'line-clamp-5 pb-5' : ''
+                    }`}
+                  >
+                    {player.bio}
+                  </p>
+                  {player.bio.length > 200 && (
+                  <button
+                    type="button"
+                    aria-expanded={bioExpanded}
+                    aria-controls="player-biography"
+                    onClick={() => setBioExpanded((expanded) => !expanded)}
+                    className={`text-xs font-semibold text-[#20C878] transition-colors hover:text-[#49e69a] ${
+                      bioExpanded
+                        ? 'mt-2'
+                        : 'absolute bottom-3 right-4 bg-[#181F29] pl-2'
+                    }`}
+                  >
+                    {bioExpanded ? 'Read less' : 'Read more'}
+                  </button>
+                  )}
+                </div>
               </div>
 
               {/* Technical Specifications */}

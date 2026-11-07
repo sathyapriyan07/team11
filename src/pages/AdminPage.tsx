@@ -29,6 +29,7 @@ import {
   RotateCcw,
   ImagePlus,
 } from 'lucide-react';
+import { WikipediaImportPanel } from '../components/admin/WikipediaImportPanel';
 
 const DEFAULT_COMPETITION_RULES: CompetitionRules = {
   maxOverseas: 4,
@@ -736,7 +737,9 @@ export const AdminPage: React.FC = () => {
 
       {/* Tab 3: Bulk Importer */}
       {activeTab === 'import' && (
-        <div className="flex flex-col gap-6 bg-[#121720] p-6 rounded-3xl border border-white/10 shadow-xl">
+        <div className="flex flex-col gap-6">
+          <WikipediaImportPanel cloudConfigured={cloudStatus.configured} isAdmin={cloudStatus.isAdmin} />
+          <div className="flex flex-col gap-6 bg-[#121720] p-6 rounded-3xl border border-white/10 shadow-xl">
           <div>
             <h3 className="text-base font-bold font-heading text-white">
               Bulk Player Import Engine
@@ -819,6 +822,7 @@ export const AdminPage: React.FC = () => {
               </span>
             </div>
           )}
+          </div>
         </div>
       )}
 
