@@ -30,7 +30,7 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
   if (!compact) {
     return (
       <div
-        className={`group relative flex aspect-square min-w-0 flex-col overflow-hidden rounded-xl border transition-all duration-200 sm:rounded-2xl ${
+        className={`player-image-card group relative flex aspect-square min-w-0 flex-col overflow-hidden rounded-xl border transition-all duration-200 sm:rounded-2xl ${
           isSelected
             ? 'border-[#20C878]/70 shadow-lg shadow-black/30'
             : 'border-white/10 hover:border-white/20'

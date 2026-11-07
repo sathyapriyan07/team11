@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
@@ -34,11 +34,20 @@ function ScrollToTop() {
 }
 
 export default function App() {
+  const [theme, setTheme] = useState<'black' | 'light'>(() =>
+    window.localStorage.getItem('xi-arena-theme') === 'light' ? 'light' : 'black',
+  );
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    window.localStorage.setItem('xi-arena-theme', theme);
+  }, [theme]);
+
   return (
     <BrowserRouter>
       <div className="min-h-screen bg-[#090B0F] text-[#F5F7FA] flex flex-col font-['Montserrat',sans-serif]">
         <ScrollToTop />
-        <Navbar />
+        <Navbar theme={theme} onToggleTheme={() => setTheme((current) => current === 'black' ? 'light' : 'black')} />
         <main className="flex-1">
           <Routes>
             <Route path="/" element={<HomePage />} />

@@ -15,9 +15,16 @@ import {
   PlusCircle,
   BarChart2,
   ChevronDown,
+  Sun,
+  Moon,
 } from 'lucide-react';
 
-export const Navbar: React.FC = () => {
+interface NavbarProps {
+  theme: 'black' | 'light';
+  onToggleTheme: () => void;
+}
+
+export const Navbar: React.FC<NavbarProps> = ({ theme, onToggleTheme }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [builderDropdownOpen, setBuilderDropdownOpen] = useState(false);
   const location = useLocation();
@@ -143,6 +150,15 @@ export const Navbar: React.FC = () => {
 
           {/* Right Action CTA & Admin link */}
           <div className="hidden sm:flex items-center gap-3">
+            <button
+              type="button"
+              onClick={onToggleTheme}
+              aria-label={`Switch to ${theme === 'black' ? 'light' : 'black'} theme`}
+              title={`Switch to ${theme === 'black' ? 'light' : 'black'} theme`}
+              className="rounded-xl p-2 text-[#929BA8] transition-colors hover:bg-white/5 hover:text-white"
+            >
+              {theme === 'black' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </button>
             <Link
               to="/admin"
               className="p-2 rounded-xl text-[#929BA8] hover:text-white hover:bg-white/5 transition-colors"
@@ -162,6 +178,15 @@ export const Navbar: React.FC = () => {
 
           {/* Mobile hamburger button */}
           <div className="flex lg:hidden items-center gap-2">
+            <button
+              type="button"
+              onClick={onToggleTheme}
+              aria-label={`Switch to ${theme === 'black' ? 'light' : 'black'} theme`}
+              title={`Switch to ${theme === 'black' ? 'light' : 'black'} theme`}
+              className="rounded-lg p-2 text-[#929BA8] transition-colors hover:bg-white/5 hover:text-white"
+            >
+              {theme === 'black' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </button>
             <Link
               to="/builder/dream"
               className="px-3 py-1.5 bg-[#20C878] text-[#090B0F] font-bold text-xs rounded-lg"
