@@ -49,6 +49,23 @@ export const PlayerDetailPage: React.FC = () => {
       : statFormat === 'TEST'
       ? player.stats.TEST
       : player.stats.T20;
+  const statCards = [
+    { label: 'Matches', value: currentStats.matches },
+    { label: 'Innings', value: currentStats.innings },
+    { label: 'Runs', value: currentStats.runs },
+    { label: 'Highest Score', value: currentStats.highestScore },
+    { label: 'Batting Average', value: currentStats.battingAverage, color: 'text-emerald-400' },
+    { label: 'Strike Rate', value: currentStats.strikeRate, color: 'text-sky-400' },
+    { label: 'Centuries', value: currentStats.centuries },
+    { label: 'Fifties', value: currentStats.fifties },
+    { label: 'Wickets', value: currentStats.wickets, color: 'text-rose-400' },
+    { label: 'Bowling Average', value: currentStats.bowlingAverage },
+    { label: 'Economy Rate', value: currentStats.economy },
+    { label: 'Best Bowling', value: currentStats.bestBowling },
+    { label: 'Five-Wicket Hauls', value: currentStats.fiveWickets },
+    { label: 'Catches', value: currentStats.catches },
+    { label: 'Stumpings', value: currentStats.stumpings },
+  ];
   const legacyTeamNames: Record<string, string> = {
     'team-csk': 'Chennai Super Kings',
     'team-mi': 'Mumbai Indians',
@@ -62,10 +79,14 @@ export const PlayerDetailPage: React.FC = () => {
     'team-aus': 'Australia National Team',
     'team-sa': 'South Africa National Team',
   };
-  const associatedTeams = player.teamsPlayed.map((teamId) => ({
-    id: teamId,
-    name: storageService.getTeamById(teamId)?.name ?? legacyTeamNames[teamId] ?? teamId,
-  }));
+  const associatedTeams = player.teamsPlayed.map((teamId) => {
+    const team = storageService.getTeamById(teamId);
+    return {
+      id: teamId,
+      team,
+      name: team?.name ?? legacyTeamNames[teamId] ?? teamId,
+    };
+  });
 
   return (
     <div className="min-h-[70vh] w-full">
@@ -107,7 +128,7 @@ export const PlayerDetailPage: React.FC = () => {
                   <img
                     src={player.countryFlagUrl}
                     alt={`${player.country} flag`}
-                    className="h-4 w-6 rounded-sm object-cover"
+                    className="h-3 w-5 object-contain"
                   />
                 )}
                 <span className="text-xs uppercase font-bold text-[#20C878] tracking-wider">
@@ -271,47 +292,15 @@ export const PlayerDetailPage: React.FC = () => {
               </div>
 
               {/* Stats Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="bg-[#181F29] p-3 rounded-xl border border-white/5">
-                  <span className="text-[10px] text-[#929BA8] uppercase block">Matches</span>
-                  <span className="text-lg font-bold text-white mt-1 block">{currentStats.matches}</span>
-                </div>
-                <div className="bg-[#181F29] p-3 rounded-xl border border-white/5">
-                  <span className="text-[10px] text-[#929BA8] uppercase block">Runs</span>
-                  <span className="text-lg font-bold text-white mt-1 block">{currentStats.runs}</span>
-                </div>
-                <div className="bg-[#181F29] p-3 rounded-xl border border-white/5">
-                  <span className="text-[10px] text-[#929BA8] uppercase block">Batting Avg</span>
-                  <span className="text-lg font-bold text-emerald-400 mt-1 block">
-                    {currentStats.battingAverage}
-                  </span>
-                </div>
-                <div className="bg-[#181F29] p-3 rounded-xl border border-white/5">
-                  <span className="text-[10px] text-[#929BA8] uppercase block">Strike Rate</span>
-                  <span className="text-lg font-bold text-sky-400 mt-1 block">
-                    {currentStats.strikeRate}
-                  </span>
-                </div>
-                <div className="bg-[#181F29] p-3 rounded-xl border border-white/5">
-                  <span className="text-[10px] text-[#929BA8] uppercase block">Centuries / 50s</span>
-                  <span className="text-lg font-bold text-white mt-1 block">
-                    {currentStats.centuries} / {currentStats.fifties}
-                  </span>
-                </div>
-                <div className="bg-[#181F29] p-3 rounded-xl border border-white/5">
-                  <span className="text-[10px] text-[#929BA8] uppercase block">Highest Score</span>
-                  <span className="text-lg font-bold text-white mt-1 block">
-                    {currentStats.highestScore}
-                  </span>
-                </div>
-                <div className="bg-[#181F29] p-3 rounded-xl border border-white/5">
-                  <span className="text-[10px] text-[#929BA8] uppercase block">Wickets</span>
-                  <span className="text-lg font-bold text-rose-400 mt-1 block">{currentStats.wickets}</span>
-                </div>
-                <div className="bg-[#181F29] p-3 rounded-xl border border-white/5">
-                  <span className="text-[10px] text-[#929BA8] uppercase block">Economy Rate</span>
-                  <span className="text-lg font-bold text-white mt-1 block">{currentStats.economy}</span>
-                </div>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+                {statCards.map((stat) => (
+                  <div key={stat.label} className="min-w-0 rounded-lg border border-white/5 bg-[#181F29] p-2">
+                    <span className="block text-[9px] leading-tight text-[#929BA8]">{stat.label}</span>
+                    <span className={`mt-1 block truncate text-sm font-bold ${stat.color ?? 'text-white'}`}>
+                      {stat.value}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
           )}
@@ -392,9 +381,17 @@ export const PlayerDetailPage: React.FC = () => {
                       key={team.id}
                       className="flex items-center gap-3 rounded-xl border border-white/5 bg-[#181F29] p-3"
                     >
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#121720] font-bold font-heading text-white">
-                        {team.id.replace('team-', '').toUpperCase()}
-                      </div>
+                      {team.team?.logo ? (
+                        <img
+                          src={team.team.logo}
+                          alt={`${team.name} logo`}
+                          className="h-12 w-12 shrink-0 object-contain"
+                        />
+                      ) : (
+                        <span className="w-12 shrink-0 font-bold font-heading text-white">
+                          {team.team?.code ?? team.id.replace('team-', '').toUpperCase()}
+                        </span>
+                      )}
                       <div>
                         <span className="block text-sm font-bold text-white">{team.name}</span>
                         <span className="text-xs text-[#929BA8]">Eligible Squad Member</span>

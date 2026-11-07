@@ -93,7 +93,7 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
                   src={player.countryFlagUrl}
                   alt=""
                   aria-hidden="true"
-                  className="h-3 w-4 shrink-0 rounded-[2px] object-cover"
+                  className="h-2 w-3 shrink-0 object-contain"
                 />
               )}
               <span className="truncate text-[7px] font-bold uppercase tracking-wide text-white/80 drop-shadow sm:text-[9px]">

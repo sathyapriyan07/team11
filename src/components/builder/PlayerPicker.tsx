@@ -227,46 +227,75 @@ export const PlayerPicker: React.FC<PlayerPickerProps> = ({
           ))}
         </div>
       ) : (
-        <div className="divide-y divide-white/5 max-h-[75vh] overflow-y-auto pr-1">
+        <div className="flex max-h-[75vh] flex-col gap-2 overflow-y-auto pr-1">
           {filteredPlayers.map((player) => {
             const isSelected = selectedPlayerIds.includes(player.id);
             return (
               <div
                 key={player.id}
-                className="flex items-center justify-between p-3 hover:bg-[#181F29] transition-colors rounded-xl"
+                className={`relative flex min-h-28 min-w-0 items-center overflow-hidden rounded-xl border p-3 transition-colors ${
+                  isSelected
+                    ? 'border-[#20C878]/50 bg-[#182420]'
+                    : 'border-white/5 bg-[#181F29] hover:border-white/15'
+                }`}
               >
-                <div className="flex items-center gap-3">
-                  <img
-                    src={player.imageUrl}
-                    alt={player.displayName}
-                    className="w-10 h-10 rounded-xl object-cover border border-white/10"
-                  />
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-white">{player.displayName}</span>
-                      <span className="text-[10px] text-[#929BA8]">{player.country}</span>
+                <button
+                  type="button"
+                  onClick={() => onViewPlayer(player)}
+                  aria-label={`View ${player.displayName} profile`}
+                  className="absolute bottom-0 left-3 flex h-28 w-20 shrink-0 items-end justify-center"
+                >
+                  {player.imageUrl ? (
+                    <img
+                      src={player.imageUrl}
+                      alt=""
+                      className="h-full w-full object-contain object-bottom"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <span
+                      aria-hidden="true"
+                      className="mb-2 grid h-12 w-12 place-items-center rounded-full bg-[#202938] text-lg font-bold text-white/50"
+                    >
+                      {player.displayName.slice(0, 1).toUpperCase()}
+                    </span>
+                  )}
+                </button>
+
+                <div className="ml-[5.75rem] flex min-w-0 flex-1 items-center justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex min-w-0 flex-wrap items-baseline gap-x-2">
+                      <button
+                        type="button"
+                        onClick={() => onViewPlayer(player)}
+                        className="max-w-full truncate text-left text-xs font-bold text-white hover:text-[#20C878]"
+                      >
+                        {player.displayName}
+                      </button>
+                      <span className="truncate text-[9px] text-[#929BA8]">{player.country}</span>
                     </div>
-                    <span className="text-xs text-[#929BA8]">
+                    <span className="mt-0.5 block truncate text-[10px] text-[#929BA8]">
                       {player.primaryRole} • {player.specialization}
                     </span>
                   </div>
-                </div>
 
-                <div className="flex items-center gap-3">
-                  <span className="text-xs font-bold font-heading text-[#20C878]">
-                    {player.overallRating}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => onTogglePlayer(player)}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                      isSelected
-                        ? 'bg-rose-500/20 text-rose-300 hover:bg-rose-500/30'
-                        : 'bg-[#20C878] text-[#090B0F] hover:bg-[#1bb56c]'
-                    }`}
-                  >
-                    {isSelected ? 'Remove' : '+ Pick'}
-                  </button>
+                  <div className="flex w-[4.25rem] shrink-0 flex-col items-center gap-1">
+                    <span className="font-heading text-[11px] font-bold text-[#20C878]">
+                      {player.overallRating}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => onTogglePlayer(player)}
+                      aria-label={`${isSelected ? 'Remove' : 'Pick'} ${player.displayName}`}
+                      className={`w-full rounded-lg px-2 py-1.5 text-[11px] font-bold transition-all ${
+                        isSelected
+                          ? 'bg-rose-500/20 text-rose-300 hover:bg-rose-500/30'
+                          : 'bg-[#20C878] text-[#090B0F] hover:bg-[#1bb56c]'
+                      }`}
+                    >
+                      {isSelected ? 'Remove' : '+ Pick'}
+                    </button>
+                  </div>
                 </div>
               </div>
             );
