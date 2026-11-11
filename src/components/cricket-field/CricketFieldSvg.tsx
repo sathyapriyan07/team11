@@ -456,7 +456,7 @@ export const CricketFieldSvg: React.FC<CricketFieldSvgProps> = ({
                   fill="#ffffff"
                   fontSize="12"
                   fontWeight="bold"
-                  fontFamily="Montserrat, sans-serif"
+                  fontFamily="Inter Tight, sans-serif"
                 >
                   {player?.displayName ? player.displayName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() : `P${teamPlayer.battingOrder}`}
                 </text>
@@ -481,7 +481,7 @@ export const CricketFieldSvg: React.FC<CricketFieldSvgProps> = ({
                     fill="#F5F7FA"
                     fontSize="9.5"
                     fontWeight="600"
-                    fontFamily="Montserrat, sans-serif"
+                    fontFamily="Inter Tight, sans-serif"
                   >
                     {player?.displayName?.split(' ').pop() || `Player ${teamPlayer.battingOrder}`}
                   </text>

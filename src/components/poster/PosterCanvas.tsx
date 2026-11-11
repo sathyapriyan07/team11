@@ -89,18 +89,18 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({ team, allPlayers }) 
 
     // Top Brand Pill
     ctx.fillStyle = primaryColor;
-    ctx.font = 'bold 20px Montserrat, sans-serif';
+    ctx.font = 'bold 20px "Inter Tight", sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('XI ARENA • OFFICIAL TACTICAL LINEUP', width / 2, 70);
 
     // Title
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = `bold ${width > 1200 ? '48px' : '40px'} Montserrat, sans-serif`;
+    ctx.font = `bold ${width > 1200 ? '48px' : '40px'} "Inter Tight", sans-serif`;
     ctx.fillText(team.title.toUpperCase(), width / 2, 130);
 
     // Subtitle / Format / Season
     ctx.fillStyle = '#929BA8';
-    ctx.font = '600 22px Montserrat, sans-serif';
+    ctx.font = '600 22px "Inter Tight", sans-serif';
     const subtext = `${team.format} CRICKET • ${team.mode.toUpperCase()} XI • ${team.season || '2025'}`;
     ctx.fillText(subtext, width / 2, 170);
 
@@ -134,13 +134,13 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({ team, allPlayers }) 
 
       // Order Number
       ctx.fillStyle = primaryColor;
-      ctx.font = 'bold 24px Montserrat, sans-serif';
+      ctx.font = 'bold 24px "Inter Tight", sans-serif';
       ctx.textAlign = 'left';
       ctx.fillText(`${item.battingOrder}`, width * 0.11, rowCenterY + 8);
 
       // Player Name
       ctx.fillStyle = '#FFFFFF';
-      ctx.font = '600 24px Montserrat, sans-serif';
+      ctx.font = '600 24px "Inter Tight", sans-serif';
       ctx.fillText(item.player.displayName, width * 0.17, rowCenterY + 8);
 
       // Captain / VC / WK Badges
@@ -152,7 +152,7 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({ team, allPlayers }) 
         ctx.roundRect(badgeX, rowCenterY - 12, 34, 22, 6);
         ctx.fill();
         ctx.fillStyle = '#000000';
-        ctx.font = 'bold 13px Montserrat, sans-serif';
+        ctx.font = 'bold 13px "Inter Tight", sans-serif';
         ctx.fillText(' C ', badgeX + 7, rowCenterY + 4);
         badgeX += 42;
       }
@@ -163,7 +163,7 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({ team, allPlayers }) 
         ctx.roundRect(badgeX, rowCenterY - 12, 38, 22, 6);
         ctx.fill();
         ctx.fillStyle = '#000000';
-        ctx.font = 'bold 12px Montserrat, sans-serif';
+        ctx.font = 'bold 12px "Inter Tight", sans-serif';
         ctx.fillText('VC', badgeX + 8, rowCenterY + 4);
         badgeX += 46;
       }
@@ -174,13 +174,13 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({ team, allPlayers }) 
         ctx.roundRect(badgeX, rowCenterY - 12, 40, 22, 6);
         ctx.fill();
         ctx.fillStyle = '#FFFFFF';
-        ctx.font = 'bold 12px Montserrat, sans-serif';
+        ctx.font = 'bold 12px "Inter Tight", sans-serif';
         ctx.fillText('WK', badgeX + 8, rowCenterY + 4);
       }
 
       // Role & Specialization
       ctx.fillStyle = '#929BA8';
-      ctx.font = '500 18px Montserrat, sans-serif';
+      ctx.font = '500 18px "Inter Tight", sans-serif';
       ctx.textAlign = 'right';
       ctx.fillText(item.player.specialization || item.player.primaryRole, width * 0.76, rowCenterY + 7);
 
@@ -192,7 +192,7 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({ team, allPlayers }) 
         ctx.fill();
 
         ctx.fillStyle = primaryColor;
-        ctx.font = 'bold 18px Montserrat, sans-serif';
+        ctx.font = 'bold 18px "Inter Tight", sans-serif';
         ctx.textAlign = 'center';
         const rating =
           team.format === 'ODI'
@@ -206,12 +206,12 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({ team, allPlayers }) 
 
     // 4. Footer Branding & Watermark
     ctx.fillStyle = '#929BA8';
-    ctx.font = '500 16px Montserrat, sans-serif';
+    ctx.font = '500 16px "Inter Tight", sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('Built on XI ARENA • Designed for Cricket Aficionados', width / 2, height - 45);
 
     ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-    ctx.font = '400 14px Montserrat, sans-serif';
+    ctx.font = '400 14px "Inter Tight", sans-serif';
     ctx.fillText(`Created by ${team.authorName} • www.xiarena.cricket`, width / 2, height - 20);
   };
 

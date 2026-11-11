@@ -45,7 +45,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-[#090B0F] text-[#F5F7FA] flex flex-col font-['Montserrat',sans-serif]">
+      <div className="min-h-screen bg-[#090B0F] text-[#F5F7FA] flex flex-col font-['Inter_Tight',sans-serif]">
         <ScrollToTop />
         <Navbar theme={theme} onToggleTheme={() => setTheme((current) => current === 'black' ? 'light' : 'black')} />
         <main className="flex-1">

@@ -12,12 +12,12 @@
   body {
     background-color: #090B0F;
     color: #F5F7FA;
-    font-family: 'Montserrat', sans-serif;
+    font-family: 'Inter Tight', sans-serif;
     overflow-x: hidden;
   }
 
   h1, h2, h3, h4, .font-heading {
-    font-family: 'Montserrat', sans-serif;
+    font-family: 'Inter Tight', sans-serif;
   }
 }
 
