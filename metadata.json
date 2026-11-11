@@ -1,5 +1,5 @@
 {
-  "name": "XI ARENA – Cricket Playing XI Builder",
+  "name": "team11 – Cricket Playing XI Builder",
   "description": "Premier Cricket Playing XI Builder, tactical lineup visualizer, and team analysis platform for IPL and international cricket fans.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

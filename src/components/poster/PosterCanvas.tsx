@@ -91,7 +91,7 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({ team, allPlayers }) 
     ctx.fillStyle = primaryColor;
     ctx.font = 'bold 20px "Inter Tight", sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('XI ARENA • OFFICIAL TACTICAL LINEUP', width / 2, 70);
+    ctx.fillText('TEAM11 • OFFICIAL TACTICAL LINEUP', width / 2, 70);
 
     // Title
     ctx.fillStyle = '#FFFFFF';
@@ -208,11 +208,11 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({ team, allPlayers }) 
     ctx.fillStyle = '#929BA8';
     ctx.font = '500 16px "Inter Tight", sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('Built on XI ARENA • Designed for Cricket Aficionados', width / 2, height - 45);
+    ctx.fillText('Built on team11 • Designed for Cricket Aficionados', width / 2, height - 45);
 
     ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
     ctx.font = '400 14px "Inter Tight", sans-serif';
-    ctx.fillText(`Created by ${team.authorName} • www.xiarena.cricket`, width / 2, height - 20);
+    ctx.fillText(`Created by ${team.authorName} • team11 Cricket XI Builder`, width / 2, height - 20);
   };
 
   useEffect(() => {

@@ -394,7 +394,9 @@ export const PlayerDetailPage: React.FC = () => {
                       )}
                       <div>
                         <span className="block text-sm font-bold text-white">{team.name}</span>
-                        <span className="text-xs text-[#929BA8]">Eligible Squad Member</span>
+                        <span className="text-xs text-[#929BA8]">
+                          {player.teamYears?.[team.id] || 'Eligible Squad Member'}
+                        </span>
                       </div>
                     </div>
                   ))}

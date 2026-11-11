@@ -246,12 +246,28 @@ export const AdminPlayerFormPage: React.FC = () => {
   };
 
   const togglePlayerTeam = (teamId: string) => {
-    setForm((current) => ({
-      ...current,
-      teamsPlayed: current.teamsPlayed.includes(teamId)
-        ? current.teamsPlayed.filter((id) => id !== teamId)
-        : [...current.teamsPlayed, teamId],
-    }));
+    setForm((current) => {
+      const isSelected = current.teamsPlayed.includes(teamId);
+      const teamYears = { ...current.teamYears };
+      if (isSelected) delete teamYears[teamId];
+
+      return {
+        ...current,
+        teamsPlayed: isSelected
+          ? current.teamsPlayed.filter((id) => id !== teamId)
+          : [...current.teamsPlayed, teamId],
+        teamYears,
+      };
+    });
+  };
+
+  const updateTeamYears = (teamId: string, years: string) => {
+    setForm((current) => {
+      const teamYears = { ...current.teamYears };
+      if (years.trim()) teamYears[teamId] = years;
+      else delete teamYears[teamId];
+      return { ...current, teamYears };
+    });
   };
 
   const updateRating = (key: 'overallRating' | 'T20' | 'ODI' | 'TEST', value: number) => {
@@ -398,6 +414,11 @@ export const AdminPlayerFormPage: React.FC = () => {
       bio: form.bio.trim(),
       stats: form.stats,
       teamsPlayed: form.teamsPlayed,
+      teamYears: Object.fromEntries(
+        form.teamsPlayed
+          .map((teamId) => [teamId, form.teamYears?.[teamId]?.trim() ?? ''])
+          .filter(([, years]) => years),
+      ),
       secondaryRoles: existing?.secondaryRoles ?? form.secondaryRoles,
     };
 
@@ -528,20 +549,37 @@ export const AdminPlayerFormPage: React.FC = () => {
           <p className="mb-5 text-xs text-[#929BA8]">Select the teams and national sides this player has represented. These appear on the player profile.</p>
           {availableTeams.length > 0 ? (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {availableTeams.map((team) => (
-                <label key={team.id} className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/10 bg-[#181F29] p-3 text-sm text-white transition-colors hover:border-[#20C878]/50">
-                  <input
-                    type="checkbox"
-                    checked={form.teamsPlayed.includes(team.id)}
-                    onChange={() => togglePlayerTeam(team.id)}
-                    className="h-4 w-4 accent-[#20C878]"
-                  />
-                  <span className="min-w-0">
-                    <span className="block truncate font-semibold">{team.name}</span>
-                    <span className="block text-xs text-[#929BA8]">{team.type} · {team.code}</span>
-                  </span>
-                </label>
-              ))}
+              {availableTeams.map((team) => {
+                const isSelected = form.teamsPlayed.includes(team.id);
+                return (
+                  <div key={team.id} className="rounded-xl border border-white/10 bg-[#181F29] p-3 transition-colors hover:border-[#20C878]/50">
+                    <label className="flex cursor-pointer items-center gap-3 text-sm text-white">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => togglePlayerTeam(team.id)}
+                        className="h-4 w-4 accent-[#20C878]"
+                      />
+                      <span className="min-w-0">
+                        <span className="block truncate font-semibold">{team.name}</span>
+                        <span className="block text-xs text-[#929BA8]">{team.type} · {team.code}</span>
+                      </span>
+                    </label>
+                    {isSelected && (
+                      <label className={`${labelClass} mt-3 block`}>
+                        Years represented
+                        <input
+                          type="text"
+                          value={form.teamYears?.[team.id] ?? ''}
+                          onChange={(event) => updateTeamYears(team.id, event.target.value)}
+                          placeholder="e.g. 2025 or 2024-26"
+                          className={inputClass}
+                        />
+                      </label>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <p className="rounded-xl border border-dashed border-white/10 p-4 text-sm text-[#929BA8]">

@@ -8,12 +8,9 @@ export const Footer: React.FC = () => {
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
         {/* Brand Col */}
         <div className="flex flex-col gap-3 md:col-span-1">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-[#20C878] flex items-center justify-center font-bold text-black text-sm font-heading">
-              XI
-            </div>
+          <div className="flex items-center">
             <span className="text-base font-extrabold font-heading text-white tracking-wide">
-              XI ARENA
+              team11
             </span>
           </div>
           <p className="text-xs text-[#929BA8] leading-relaxed">
@@ -60,6 +57,9 @@ export const Footer: React.FC = () => {
             <Link to="/players" className="hover:text-[#20C878] transition-colors">
               Centralized Players Database
             </Link>
+            <Link to="/teams" className="hover:text-[#20C878] transition-colors">
+              Teams & Squads
+            </Link>
             <Link to="/competitions" className="hover:text-[#20C878] transition-colors">
               Competitions & Squad Rosters
             </Link>
@@ -93,7 +93,7 @@ export const Footer: React.FC = () => {
       </div>
 
       <div className="max-w-7xl mx-auto border-t border-white/5 mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-[#929BA8] gap-4">
-        <span>© 2025 XI ARENA. All cricket statistics and franchise badges are property of their respective cricket boards.</span>
+        <span>© 2025 team11. All cricket statistics and franchise badges are property of their respective cricket boards.</span>
         <div className="flex items-center gap-4">
           <Link to="/admin" className="hover:text-white transition-colors">
             Admin Schema

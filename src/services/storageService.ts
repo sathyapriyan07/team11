@@ -490,7 +490,7 @@ class StorageService {
   // Supabase migration script generator
   public generateSupabaseSQL(): string {
     return `-- ==============================================================================
--- XI ARENA – SUPABASE POSTGRESQL PRODUCTION SCHEMA
+-- TEAM11 – SUPABASE POSTGRESQL PRODUCTION SCHEMA
 -- Fully Normalized Tables, Relationships, Indexes & RLS Policies
 -- ==============================================================================
 

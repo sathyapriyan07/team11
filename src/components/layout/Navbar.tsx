@@ -37,6 +37,7 @@ export const Navbar: React.FC<NavbarProps> = ({ theme, onToggleTheme }) => {
 
   const navLinks = [
     { label: 'Players', path: '/players', icon: Users },
+    { label: 'Teams', path: '/teams', icon: Shield },
     { label: 'Competitions', path: '/competitions', icon: Trophy },
     { label: 'Custom Pools', path: '/pools', icon: Layers },
     { label: 'Auto Generator', path: '/generator', icon: Sparkles },
@@ -48,36 +49,23 @@ export const Navbar: React.FC<NavbarProps> = ({ theme, onToggleTheme }) => {
   return (
     <nav className="sticky top-0 z-40 bg-[#090B0F]/90 backdrop-blur-md border-b border-white/5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex h-16 items-center justify-between gap-2">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#20C878] to-[#1bb56c] flex items-center justify-center shadow-lg shadow-[#20C878]/20 group-hover:scale-105 transition-transform">
-              <span className="font-extrabold text-black text-lg tracking-tighter font-heading">
-                XI
-              </span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-lg font-extrabold font-heading text-white tracking-wide flex items-center gap-1.5">
-                XI ARENA
-                <span className="text-[10px] px-1.5 py-0.2 rounded bg-[#20C878]/15 text-[#20C878] font-bold uppercase tracking-widest border border-[#20C878]/30">
-                  PRO
-                </span>
-              </span>
-              <span className="text-[10px] text-[#929BA8] font-medium tracking-tight -mt-1">
-                Cricket Playing XI Builder
-              </span>
-            </div>
+          <Link to="/" className="group flex shrink-0 items-center">
+            <span className="font-heading text-xl font-extrabold tracking-tight text-white transition-colors group-hover:text-[#20C878]">
+              team11
+            </span>
           </Link>
 
           {/* Desktop Navigation Links */}
-          <div className="hidden lg:flex items-center gap-1 xl:gap-2 text-sm font-semibold">
+          <div className="hidden min-w-0 flex-1 items-center justify-center gap-0.5 whitespace-nowrap text-xs font-semibold 2xl:flex">
             {/* Builder Dropdown */}
             <div className="relative">
               <button
                 type="button"
                 onClick={() => setBuilderDropdownOpen(!builderDropdownOpen)}
                 onBlur={() => setTimeout(() => setBuilderDropdownOpen(false), 200)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl transition-colors cursor-pointer ${
+                className={`flex shrink-0 cursor-pointer items-center gap-1 px-2 py-2 rounded-xl transition-colors ${
                   location.pathname.startsWith('/builder')
                     ? 'text-[#20C878] bg-[#20C878]/10'
                     : 'text-[#929BA8] hover:text-white hover:bg-white/5'
@@ -135,7 +123,7 @@ export const Navbar: React.FC<NavbarProps> = ({ theme, onToggleTheme }) => {
                 <Link
                   key={link.path}
                   to={link.path}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl transition-colors ${
+                  className={`flex shrink-0 items-center gap-1 px-2 py-2 rounded-xl transition-colors ${
                     isActive(link.path)
                       ? 'text-[#20C878] bg-[#20C878]/10'
                       : 'text-[#929BA8] hover:text-white hover:bg-white/5'
@@ -149,7 +137,7 @@ export const Navbar: React.FC<NavbarProps> = ({ theme, onToggleTheme }) => {
           </div>
 
           {/* Right Action CTA & Admin link */}
-          <div className="hidden sm:flex items-center gap-3">
+          <div className="hidden shrink-0 items-center gap-1.5 2xl:flex">
             <button
               type="button"
               onClick={onToggleTheme}
@@ -169,15 +157,15 @@ export const Navbar: React.FC<NavbarProps> = ({ theme, onToggleTheme }) => {
 
             <Link
               to="/builder/dream"
-              className="px-4 py-2 bg-[#20C878] hover:bg-[#1bb56c] text-[#090B0F] font-bold text-xs rounded-xl shadow-lg shadow-[#20C878]/20 flex items-center gap-1.5 transition-all hover:scale-[1.02]"
+              className="flex items-center gap-1.5 whitespace-nowrap rounded-xl bg-[#20C878] px-3 py-2 text-xs font-bold text-[#090B0F] shadow-lg shadow-[#20C878]/20 transition-all hover:scale-[1.02] hover:bg-[#1bb56c]"
             >
               <PlusCircle className="w-4 h-4" />
-              <span>Create Playing XI</span>
+              <span>Create XI</span>
             </Link>
           </div>
 
           {/* Mobile hamburger button */}
-          <div className="flex lg:hidden items-center gap-2">
+          <div className="flex items-center gap-1.5 2xl:hidden">
             <button
               type="button"
               onClick={onToggleTheme}
@@ -189,9 +177,9 @@ export const Navbar: React.FC<NavbarProps> = ({ theme, onToggleTheme }) => {
             </button>
             <Link
               to="/builder/dream"
-              className="px-3 py-1.5 bg-[#20C878] text-[#090B0F] font-bold text-xs rounded-lg"
+              className="whitespace-nowrap rounded-lg bg-[#20C878] px-3 py-1.5 text-xs font-bold text-[#090B0F]"
             >
-              + Create XI
+              Create XI
             </Link>
             <button
               type="button"
@@ -206,7 +194,7 @@ export const Navbar: React.FC<NavbarProps> = ({ theme, onToggleTheme }) => {
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-[#121720] border-b border-white/10 px-4 py-4 flex flex-col gap-2">
+        <div className="2xl:hidden bg-[#121720] border-b border-white/10 px-4 py-4 flex flex-col gap-2">
           <Link
             to="/builder/dream"
             onClick={() => setMobileMenuOpen(false)}

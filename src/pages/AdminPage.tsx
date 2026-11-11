@@ -550,7 +550,7 @@ export const AdminPage: React.FC = () => {
           <div className="bg-[#121720] p-6 rounded-3xl border border-white/10 flex flex-col gap-4">
             <h3 className="text-base font-bold font-heading text-white">System Architecture & Integrity</h3>
             <p className="text-xs text-[#929BA8] leading-relaxed">
-              XI ARENA uses a normalized relational data model. Each player is a singular master entity referencing career statistics, format ratings, and season-specific squad rosters without duplicating records across leagues.
+              team11 uses a normalized relational data model. Each player is a singular master entity referencing career statistics, format ratings, and season-specific squad rosters without duplicating records across leagues.
             </p>
             <div className="flex flex-wrap gap-2 text-xs">
               <span className="px-3 py-1.5 rounded-xl bg-[#181F29] border border-white/5 text-[#20C878]">

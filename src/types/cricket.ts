@@ -122,6 +122,7 @@ export interface Player {
     IPL?: PlayerStats;
   };
   teamsPlayed: string[]; // franchise/team IDs
+  teamYears?: Record<string, string>;
   isOverseasIPL?: boolean; // convenient tag for IPL rule checking
 }
 

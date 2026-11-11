@@ -84,16 +84,9 @@ export const PlayersPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#20C878] mb-1">
-            <Users className="w-4 h-4" />
-            <span>Centralized Database</span>
-          </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold font-heading text-white">
-            Cricket Players Directory
+            Players
           </h1>
-          <p className="text-xs sm:text-sm text-[#929BA8] mt-1">
-            Comprehensive database of active superstars, franchise heroes, and all-time legends with format ratings.
-          </p>
         </div>
 
         {/* Format Rating Filter Pills */}
@@ -117,7 +110,7 @@ export const PlayersPage: React.FC = () => {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-[#121720] border border-white/10 rounded-2xl p-4 shadow-xl flex flex-col gap-4">
+      <div className="flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row items-center gap-3">
           <div className="relative flex-1 w-full">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#929BA8]" />
@@ -177,9 +170,6 @@ export const PlayersPage: React.FC = () => {
               {r === 'Wicketkeeper' && '🧤 Wicketkeepers'}
             </button>
           ))}
-          <span className="text-xs text-[#929BA8] ml-auto shrink-0 font-medium">
-            Showing {filtered.length} players
-          </span>
         </div>
       </div>
 

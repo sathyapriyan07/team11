@@ -21,6 +21,8 @@ import { PosterPage } from './pages/PosterPage';
 import { AdminPage } from './pages/AdminPage';
 import { AdminPlayerFormPage } from './pages/AdminPlayerFormPage';
 import { PlayerDetailPage } from './pages/PlayerDetailPage';
+import { TeamDetailPage } from './pages/TeamDetailPage';
+import { TeamsPage } from './pages/TeamsPage';
 
 // Scroll to top upon route change
 function ScrollToTop() {
@@ -56,6 +58,8 @@ export default function App() {
             <Route path="/generator" element={<AutoGeneratorPage />} />
             <Route path="/players" element={<PlayersPage />} />
             <Route path="/players/:playerId" element={<PlayerDetailPage />} />
+            <Route path="/teams" element={<TeamsPage />} />
+            <Route path="/teams/:teamId" element={<TeamDetailPage />} />
             <Route path="/competitions" element={<CompetitionsPage />} />
             <Route path="/pools" element={<PoolsPage />} />
             <Route path="/compare" element={<PlayerComparePage />} />

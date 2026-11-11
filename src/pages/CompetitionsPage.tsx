@@ -200,7 +200,9 @@ export const CompetitionsPage: React.FC = () => {
                       <div className="mb-2 flex items-center justify-between gap-3">
                         <div className="flex min-w-0 items-center gap-2">
                           {team.logo && <img src={team.logo} alt="" className="h-8 w-8 shrink-0 rounded-lg object-contain" />}
-                          <span className="truncate text-xs font-bold font-heading text-white">{team.name}</span>
+                          <Link to={`/teams/${team.id}`} className="truncate text-xs font-bold font-heading text-white hover:text-[#20C878]">
+                            {team.name}
+                          </Link>
                         </div>
                         <span className="text-[10px] font-bold text-[#929BA8]">{team.code}</span>
                       </div>
@@ -223,10 +225,10 @@ export const CompetitionsPage: React.FC = () => {
                           : 'Challenger'}
                       </span>
                       <Link
-                        to={`/builder/franchise`}
+                        to={`/teams/${team.id}`}
                         className="text-xs text-[#20C878] font-bold hover:underline flex items-center gap-1"
                       >
-                        <span>Build Lineup</span>
+                        <span>View Squad</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </Link>
                     </div>
