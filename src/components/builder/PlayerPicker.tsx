@@ -150,10 +150,10 @@ export const PlayerPicker: React.FC<PlayerPickerProps> = ({
               }`}
             >
               {role === 'All' && 'All Roles'}
-              {role === 'Batter' && '🏏 Batters'}
-              {role === 'All-rounder' && '⚡ All-rounders'}
-              {role === 'Bowler' && '🎯 Bowlers'}
-              {role === 'Wicketkeeper' && '🧤 Keepers'}
+              {role === 'Batter' && 'Batters'}
+              {role === 'All-rounder' && 'All-rounders'}
+              {role === 'Bowler' && 'Bowlers'}
+              {role === 'Wicketkeeper' && 'Keepers'}
             </button>
           ))}
         </div>

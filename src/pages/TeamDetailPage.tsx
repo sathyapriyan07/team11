@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, CalendarDays, Shield, Users } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CalendarDays, Users } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { Player, TeamEntity } from '../types/cricket';
 
@@ -62,16 +62,11 @@ export const TeamDetailPage: React.FC = () => {
       <section className="overflow-hidden rounded-3xl border border-white/10 bg-[#121720]">
         <div className="flex flex-col gap-5 bg-gradient-to-br from-[#182420] to-[#121720] p-5 sm:flex-row sm:items-center sm:p-8">
           {team.logo ? (
-            <img src={team.logo} alt={`${team.name} logo`} className="h-20 w-20 shrink-0 rounded-2xl bg-white/5 object-contain p-2" />
+            <img src={team.logo} alt={`${team.name} logo`} className="h-20 w-20 shrink-0 object-contain" />
           ) : (
-            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-white/5 text-2xl font-extrabold text-[#20C878]">
-              {team.code}
-            </div>
+            <span className="shrink-0 text-2xl font-extrabold text-[#20C878]">{team.code}</span>
           )}
           <div className="min-w-0 flex-1">
-            <div className="mb-1 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#20C878]">
-              <Shield className="h-4 w-4" /> {team.type} team
-            </div>
             <h1 className="text-2xl font-extrabold text-white sm:text-4xl">{team.name}</h1>
             <p className="mt-1 text-sm text-[#929BA8]">
               {[team.homeGround, team.establishedYear ? `Est. ${team.establishedYear}` : '', team.code]

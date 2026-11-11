@@ -21,8 +21,9 @@ import {
   WikipediaSquadPlayer,
   WikipediaStatsPreview,
 } from '../../services/wikipediaService';
+import { getCricketApiPlayer } from '../../services/cricketApiService';
 
-type ImportKind = 'player' | 'squad' | 'team' | 'competition' | 'stats';
+type ImportKind = 'player' | 'squad' | 'team' | 'competition' | 'stats' | 'cricket-stats';
 
 const EMPTY_STATS: PlayerStats = {
   matches: 0,
@@ -132,9 +133,26 @@ export const WikipediaImportPanel: React.FC<WikipediaImportPanelProps> = ({ clou
     setResults([]);
     clearPreview();
     try {
-      setResults(await searchWikipedia(trimmedQuery));
+      if (kind === 'cricket-stats') {
+        const player = await getCricketApiPlayer(trimmedQuery);
+        const availableFormats = (['TEST', 'ODI', 'T20'] as const)
+          .filter((format) => Object.keys(player.stats[format] ?? {}).length > 0);
+        setPreview({
+          title: player.name,
+          extract: [player.country, player.role].filter(Boolean).join(' · '),
+          imageUrl: player.imageUrl,
+          pageUrl: 'https://github.com/tarun7r/Cricket-API',
+        });
+        setStatsPreview(player.stats);
+        setSelectedStatsFormats(availableFormats);
+        if (availableFormats.length === 0) {
+          setNotice('The Cricket API returned no recognizable career statistics for this player.');
+        }
+      } else {
+        setResults(await searchWikipedia(trimmedQuery));
+      }
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'Wikipedia search failed.');
+      setError(requestError instanceof Error ? requestError.message : 'Player stats search failed.');
     } finally {
       setLoading(false);
     }
@@ -261,7 +279,7 @@ export const WikipediaImportPanel: React.FC<WikipediaImportPanelProps> = ({ clou
     }
 
     const name = draftName.trim();
-    if (!name) {
+    if (kind !== 'stats' && kind !== 'cricket-stats' && !name) {
       setError('Enter a name before importing.');
       return;
     }
@@ -345,7 +363,7 @@ export const WikipediaImportPanel: React.FC<WikipediaImportPanelProps> = ({ clou
         description: draftDescription.trim(),
         rules: { ...DEFAULT_RULES },
       });
-    } else {
+    } else if (kind === 'stats' || kind === 'cricket-stats') {
       const player = savedPlayers.find((item) => item.id === selectedPlayerId);
       if (!player) {
         setError('Select the existing player whose statistics you want to update.');
@@ -365,7 +383,7 @@ export const WikipediaImportPanel: React.FC<WikipediaImportPanelProps> = ({ clou
       storageService.savePlayer({ ...player, stats: updatedStats });
     }
 
-    setNotice(`${kind === 'stats' ? 'Player statistics' : kind} imported. Review the saved record before using it.`);
+    setNotice(`${kind === 'stats' || kind === 'cricket-stats' ? 'Player statistics' : kind} imported. Review the saved record before using it.`);
     setPreview(null);
     setStatsPreview({});
     setSelectedStatsFormats([]);
@@ -376,9 +394,9 @@ export const WikipediaImportPanel: React.FC<WikipediaImportPanelProps> = ({ clou
   return (
     <section className="flex flex-col gap-5 rounded-3xl border border-white/10 bg-[#121720] p-4 shadow-xl sm:p-6">
       <div>
-        <h3 className="text-base font-bold font-heading text-white">Import from Wikipedia</h3>
+        <h3 className="text-base font-bold font-heading text-white">Import player and competition data</h3>
         <p className="mt-1 text-xs leading-relaxed text-[#929BA8]">
-          Search an article, review the extracted data, and choose what to add. Imported records use safe defaults for fields Wikipedia does not provide.
+          Search Wikipedia for player, squad, team, or competition records; use the Cricket API for player career statistics.
         </p>
       </div>
 
@@ -389,6 +407,7 @@ export const WikipediaImportPanel: React.FC<WikipediaImportPanelProps> = ({ clou
           ['team', 'Team'],
           ['competition', 'Competition'],
           ['stats', 'Player stats'],
+          ['cricket-stats', 'Cricket API stats'],
         ] as const).map(([value, label]) => (
           <button
             key={value}
@@ -408,9 +427,19 @@ export const WikipediaImportPanel: React.FC<WikipediaImportPanelProps> = ({ clou
         ))}
       </div>
 
-      {kind === 'stats' && (
+      {(kind === 'stats' || kind === 'cricket-stats') && (
         <label className={labelClass}>Update statistics for
-          <select value={selectedPlayerId} onChange={(event) => setSelectedPlayerId(event.target.value)} className={inputClass}>
+          <select
+            value={selectedPlayerId}
+            onChange={(event) => {
+              const playerId = event.target.value;
+              setSelectedPlayerId(playerId);
+              if (kind === 'cricket-stats') {
+                setQuery(savedPlayers.find((player) => player.id === playerId)?.fullName ?? '');
+              }
+            }}
+            className={inputClass}
+          >
             <option value="">Select a player</option>
             {savedPlayers.map((player) => <option key={player.id} value={player.id}>{player.fullName}</option>)}
           </select>
@@ -418,12 +447,20 @@ export const WikipediaImportPanel: React.FC<WikipediaImportPanelProps> = ({ clou
       )}
 
       <form onSubmit={(event) => void handleSearch(event)} className="flex flex-col gap-2 sm:flex-row">
-        <label className="sr-only" htmlFor="wikipedia-search">Wikipedia article search</label>
+        <label className="sr-only" htmlFor="player-data-search">
+          {kind === 'cricket-stats' ? 'Cricket API player search' : 'Wikipedia article search'}
+        </label>
         <input
-          id="wikipedia-search"
+          id="player-data-search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder={kind === 'stats' ? 'Search player article for stats' : kind === 'squad' ? 'Search Wikipedia for a team squad' : `Search Wikipedia for a ${kind}`}
+          placeholder={kind === 'cricket-stats'
+            ? 'Enter a player name for Cricket API stats'
+            : kind === 'stats'
+              ? 'Search player article for stats'
+              : kind === 'squad'
+                ? 'Search Wikipedia for a team squad'
+                : `Search Wikipedia for a ${kind}`}
           className={`${inputClass} mt-0 min-w-0 flex-1`}
         />
         <button type="submit" disabled={loading || !query.trim()} className="inline-flex items-center justify-center gap-2 rounded-xl bg-white/5 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/10 disabled:opacity-50">
@@ -452,12 +489,12 @@ export const WikipediaImportPanel: React.FC<WikipediaImportPanelProps> = ({ clou
             <div className="min-w-0 flex-1">
               <p className="text-sm font-bold text-white">{preview.title}</p>
               <a href={preview.pageUrl} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs text-[#20C878] hover:underline">
-                Review Wikipedia source <ExternalLink className="h-3 w-3" />
+                {kind === 'cricket-stats' ? 'Review Cricket API source' : 'Review Wikipedia source'} <ExternalLink className="h-3 w-3" />
               </a>
             </div>
           </div>
 
-          {kind !== 'stats' && kind !== 'squad' ? (
+          {kind !== 'stats' && kind !== 'cricket-stats' && kind !== 'squad' ? (
             <div className="grid gap-3 sm:grid-cols-2">
               <label className={labelClass}>Name
                 <input value={draftName} onChange={(event) => setDraftName(event.target.value)} className={inputClass} />
@@ -614,7 +651,9 @@ export const WikipediaImportPanel: React.FC<WikipediaImportPanelProps> = ({ clou
                       })}
                     </tbody>
                   </table>
-                  <p className="mt-2 text-[11px] text-[#929BA8]">Only values extracted from recognized table cells replace saved values. Review the Wikipedia source before applying.</p>
+                  <p className="mt-2 text-[11px] text-[#929BA8]">
+                    Only returned values replace saved values. Review the {kind === 'cricket-stats' ? 'Cricket API' : 'Wikipedia'} source before applying.
+                  </p>
                 </div>
               ) : (
                 <p className="text-xs text-[#929BA8]">No recognized statistics found in this article.</p>
@@ -623,9 +662,13 @@ export const WikipediaImportPanel: React.FC<WikipediaImportPanelProps> = ({ clou
           )}
 
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-3">
-            <span className="text-[11px] text-[#929BA8]">Wikipedia content is community-maintained; verify the article and imported values.</span>
-            <button type="button" onClick={handleImport} disabled={!canWrite || loading || (kind === 'stats' && savedPlayers.length === 0)} className="inline-flex items-center gap-2 rounded-xl bg-[#20C878] px-4 py-2.5 text-xs font-bold text-[#090B0F] hover:bg-[#1bb56c] disabled:cursor-not-allowed disabled:opacity-50">
-              <CheckCircle2 className="h-4 w-4" /> {kind === 'stats' ? 'Apply selected stats' : kind === 'squad' ? `Import ${selectedSquadPlayers.length} selected players` : 'Import reviewed record'}
+            <span className="text-[11px] text-[#929BA8]">
+              {kind === 'cricket-stats'
+                ? 'Cricket-API data is scraped from Cricbuzz; verify imported values.'
+                : 'Wikipedia content is community-maintained; verify the article and imported values.'}
+            </span>
+            <button type="button" onClick={handleImport} disabled={!canWrite || loading || ((kind === 'stats' || kind === 'cricket-stats') && savedPlayers.length === 0)} className="inline-flex items-center gap-2 rounded-xl bg-[#20C878] px-4 py-2.5 text-xs font-bold text-[#090B0F] hover:bg-[#1bb56c] disabled:cursor-not-allowed disabled:opacity-50">
+              <CheckCircle2 className="h-4 w-4" /> {(kind === 'stats' || kind === 'cricket-stats') ? 'Apply selected stats' : kind === 'squad' ? `Import ${selectedSquadPlayers.length} selected players` : 'Import reviewed record'}
             </button>
           </div>
         </div>

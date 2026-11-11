@@ -60,11 +60,11 @@ export const PlayersPage: React.FC = () => {
   }, [players, searchTerm, roleFilter, countryFilter, statusFilter, selectedFormat]);
 
   const groupedPlayers = useMemo(() => {
-    const categories: { role: PlayerRole; title: string; icon: string }[] = [
-      { role: 'Wicketkeeper', title: 'Wicketkeepers', icon: '🧤' },
-      { role: 'Batter', title: 'Batters', icon: '🏏' },
-      { role: 'All-rounder', title: 'All-rounders', icon: '⚡' },
-      { role: 'Bowler', title: 'Bowlers', icon: '🎯' },
+    const categories: { role: PlayerRole; title: string }[] = [
+      { role: 'Wicketkeeper', title: 'Wicketkeepers' },
+      { role: 'Batter', title: 'Batters' },
+      { role: 'All-rounder', title: 'All-rounders' },
+      { role: 'Bowler', title: 'Bowlers' },
     ];
 
     return categories
@@ -164,10 +164,10 @@ export const PlayersPage: React.FC = () => {
               }`}
             >
               {r === 'All' && 'All Roles'}
-              {r === 'Batter' && '🏏 Batters'}
-              {r === 'All-rounder' && '⚡ All-rounders'}
-              {r === 'Bowler' && '🎯 Bowlers'}
-              {r === 'Wicketkeeper' && '🧤 Wicketkeepers'}
+              {r === 'Batter' && 'Batters'}
+              {r === 'All-rounder' && 'All-rounders'}
+              {r === 'Bowler' && 'Bowlers'}
+              {r === 'Wicketkeeper' && 'Wicketkeepers'}
             </button>
           ))}
         </div>
@@ -184,8 +184,7 @@ export const PlayersPage: React.FC = () => {
           {groupedPlayers.map((category) => (
             <section key={category.role} aria-labelledby={`players-${category.role}`}>
               <div className="mb-3 flex items-center justify-between border-b border-white/10 pb-2">
-                <h2 id={`players-${category.role}`} className="flex items-center gap-2 text-base font-bold text-white sm:text-lg">
-                  <span aria-hidden="true">{category.icon}</span>
+                <h2 id={`players-${category.role}`} className="text-base font-bold text-white sm:text-lg">
                   {category.title}
                 </h2>
                 <span className="text-xs font-medium text-[#929BA8]">

@@ -13,7 +13,6 @@ import {
   CheckCircle,
   TrendingUp,
   Image as ImageIcon,
-  Flame,
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { UserTeam, Player } from '../types/cricket';
@@ -100,31 +99,18 @@ export const HomePage: React.FC = () => {
         {/* Subtle radial glow background */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[#20C878]/10 blur-[120px] rounded-full pointer-events-none -z-10" />
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center flex flex-col items-center">
-          {/* Top Announcement Tag */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#181F29] border border-[#20C878]/30 text-xs font-semibold text-[#20C878] mb-6 shadow-inner">
-            <Flame className="w-3.5 h-3.5 text-[#20C878]" />
-            <span>IPL 2025 Ready • Tactical Squad Builder & Lineup Engine</span>
-          </div>
-
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center flex flex-col items-center text-[#F5F7FA]">
           {/* Main Title */}
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold font-heading text-white tracking-tight max-w-4xl leading-[1.1]">
+          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold font-heading tracking-tight max-w-4xl leading-[1.1]">
             Build The Ultimate{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#20C878] via-emerald-400 to-[#3BA7FF]">
-              Cricket Playing XI
-            </span>
+            <span>Cricket Playing XI</span>
           </h1>
-
-          {/* Subtitle */}
-          <p className="text-base sm:text-lg text-[#929BA8] max-w-2xl mt-5 leading-relaxed font-normal">
-            The professional workstation for cricket tacticians. Select from centralized player records, validate competition rules, arrange visual fields, inspect deep team metrics, and export broadcast-grade posters.
-          </p>
 
           {/* Call to Actions */}
           <div className="flex flex-wrap items-center justify-center gap-4 mt-8">
             <Link
               to="/builder/dream"
-              className="px-6 py-3.5 bg-[#20C878] hover:bg-[#1bb56c] active:scale-[0.98] text-[#090B0F] font-extrabold text-sm rounded-xl shadow-xl shadow-[#20C878]/25 flex items-center gap-2 transition-all cursor-pointer"
+              className="px-6 py-3.5 bg-[#20C878] hover:bg-[#1bb56c] active:scale-[0.98] font-extrabold text-sm rounded-xl shadow-xl shadow-[#20C878]/25 flex items-center gap-2 transition-all cursor-pointer"
             >
               <Sliders className="w-4 h-4" />
               <span>Launch Playing XI Builder</span>
@@ -133,15 +119,15 @@ export const HomePage: React.FC = () => {
 
             <Link
               to="/generator"
-              className="px-6 py-3.5 bg-[#181F29] hover:bg-[#202938] border border-white/10 text-white font-bold text-sm rounded-xl flex items-center gap-2 transition-all cursor-pointer"
+              className="px-6 py-3.5 bg-[#181F29] hover:bg-[#202938] border border-white/10 font-bold text-sm rounded-xl flex items-center gap-2 transition-all cursor-pointer"
             >
-              <Sparkles className="w-4 h-4 text-[#3BA7FF]" />
+              <Sparkles className="w-4 h-4" />
               <span>Auto-Generate Best XI</span>
             </Link>
 
             <Link
               to="/explore"
-              className="px-6 py-3.5 bg-transparent hover:bg-white/5 text-[#929BA8] hover:text-white text-sm font-semibold rounded-xl transition-all"
+              className="px-6 py-3.5 bg-transparent hover:bg-white/5 text-sm font-semibold rounded-xl transition-all"
             >
               Explore Community Lineups
             </Link>
@@ -150,20 +136,20 @@ export const HomePage: React.FC = () => {
           {/* Quick Metrics Bar */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 mt-14 pt-10 border-t border-white/5 w-full max-w-3xl text-center">
             <div>
-              <div className="text-2xl sm:text-3xl font-extrabold font-heading text-white">6</div>
-              <div className="text-xs text-[#929BA8] mt-1">Builder Modes</div>
+              <div className="text-2xl sm:text-3xl font-extrabold font-heading">6</div>
+              <div className="text-xs mt-1">Builder Modes</div>
             </div>
             <div>
-              <div className="text-2xl sm:text-3xl font-extrabold font-heading text-[#20C878]">100%</div>
-              <div className="text-xs text-[#929BA8] mt-1">Rules Validated</div>
+              <div className="text-2xl sm:text-3xl font-extrabold font-heading">100%</div>
+              <div className="text-xs mt-1">Rules Validated</div>
             </div>
             <div>
-              <div className="text-2xl sm:text-3xl font-extrabold font-heading text-[#3BA7FF]">25+</div>
-              <div className="text-xs text-[#929BA8] mt-1">Field Positions</div>
+              <div className="text-2xl sm:text-3xl font-extrabold font-heading">25+</div>
+              <div className="text-xs mt-1">Field Positions</div>
             </div>
             <div>
-              <div className="text-2xl sm:text-3xl font-extrabold font-heading text-amber-400">4K</div>
-              <div className="text-xs text-[#929BA8] mt-1">PNG Poster Export</div>
+              <div className="text-2xl sm:text-3xl font-extrabold font-heading">4K</div>
+              <div className="text-xs mt-1">PNG Poster Export</div>
             </div>
           </div>
         </div>
