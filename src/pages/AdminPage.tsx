@@ -30,6 +30,11 @@ import {
   ImagePlus,
 } from 'lucide-react';
 import { WikipediaImportPanel } from '../components/admin/WikipediaImportPanel';
+import {
+  downloadPlayerSpreadsheetTemplate,
+  parseCsvSpreadsheet,
+  parsePlayerSpreadsheetRows,
+} from '../services/playerSpreadsheetService';
 
 const DEFAULT_COMPETITION_RULES: CompetitionRules = {
   maxOverseas: 4,
@@ -88,7 +93,14 @@ export const AdminPage: React.FC = () => {
 
   // CSV Import State
   const [importJsonText, setImportJsonText] = useState('');
-  const [importResult, setImportResult] = useState<{ imported: number; duplicates: number } | null>(null);
+  const [importResult, setImportResult] = useState<{
+    imported: number;
+    duplicates: number;
+    rowErrors?: string[];
+  } | null>(null);
+  const [spreadsheetError, setSpreadsheetError] = useState('');
+  const [importingSpreadsheet, setImportingSpreadsheet] = useState(false);
+  const [showSpreadsheetTemplate, setShowSpreadsheetTemplate] = useState(false);
   const [copiedSchema, setCopiedSchema] = useState(false);
   const [cloudStatus, setCloudStatus] = useState(storageService.getCloudStorageStatus());
   const [adminEmail, setAdminEmail] = useState('');
@@ -372,6 +384,56 @@ export const AdminPage: React.FC = () => {
       setImportJsonText('');
     } catch (err: any) {
       alert(`Invalid JSON: ${err.message}`);
+    }
+  };
+
+  const handleSpreadsheetUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = '';
+    if (!file || !requireAdminAccess()) return;
+
+    setSpreadsheetError('');
+    setImportResult(null);
+    if (file.size > 10 * 1024 * 1024) {
+      setSpreadsheetError('The spreadsheet must be smaller than 10 MB.');
+      return;
+    }
+
+    setImportingSpreadsheet(true);
+    try {
+      const extension = file.name.split('.').pop()?.toLowerCase();
+      let rows: unknown[][];
+      if (extension === 'csv') {
+        rows = parseCsvSpreadsheet(await file.text());
+      } else if (extension === 'xlsx' || extension === 'xlsm') {
+        const { default: readXlsxFile } = await import('read-excel-file/browser');
+        const sheets = await readXlsxFile(file);
+        rows = sheets[0]?.data ?? [];
+      } else {
+        throw new Error('Choose an .xlsx, .xlsm, or .csv spreadsheet.');
+      }
+
+      const parsed = parsePlayerSpreadsheetRows(rows);
+      if (parsed.players.length === 0 && parsed.rowErrors.length > 0) {
+        setImportResult({ imported: 0, duplicates: 0, rowErrors: parsed.rowErrors });
+        return;
+      }
+
+      const result = storageService.bulkImportPlayers(parsed.players);
+      setImportResult({ ...result, rowErrors: parsed.rowErrors });
+    } catch (error) {
+      setSpreadsheetError(error instanceof Error ? error.message : 'Could not read the spreadsheet.');
+    } finally {
+      setImportingSpreadsheet(false);
+    }
+  };
+
+  const handleDownloadSpreadsheetTemplate = async () => {
+    setSpreadsheetError('');
+    try {
+      await downloadPlayerSpreadsheetTemplate();
+    } catch (error) {
+      setSpreadsheetError(error instanceof Error ? error.message : 'Could not create the Excel template.');
     }
   };
 
@@ -837,8 +899,47 @@ export const AdminPage: React.FC = () => {
               Bulk Player Import Engine
             </h3>
             <p className="text-xs text-[#929BA8] mt-1 leading-relaxed">
-              Import multiple player records simultaneously using JSON arrays. Includes duplicate detection and automatic attribute normalization.
+              Upload an Excel or CSV spreadsheet, or import multiple player records from a JSON array. Duplicate names are ignored.
             </p>
+          </div>
+
+          <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-[#181F29] p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h4 className="text-sm font-bold text-white">Upload player spreadsheet</h4>
+                <p className="mt-1 text-[11px] text-[#929BA8]">
+                  First worksheet is used. Required columns: <code>fullName</code> and <code>country</code>. Other player fields and stats are optional.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowSpreadsheetTemplate(true)}
+                  className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-white hover:bg-white/5"
+                >
+                  Preview template
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleDownloadSpreadsheetTemplate()}
+                  className="rounded-lg bg-[#20C878] px-3 py-2 text-xs font-bold text-[#090B0F] hover:bg-[#1bb56c]"
+                >
+                  Download Excel template
+                </button>
+              </div>
+            </div>
+            <label className="flex flex-col gap-2 text-xs font-semibold text-[#929BA8]">
+              Choose .xlsx, .xlsm, or .csv (max 10 MB, up to 5,000 players)
+              <input
+                type="file"
+                accept=".xlsx,.xlsm,.csv"
+                onChange={(event) => void handleSpreadsheetUpload(event)}
+                disabled={importingSpreadsheet}
+                className="block w-full text-xs text-[#929BA8] file:mr-3 file:rounded-lg file:border-0 file:bg-[#20C878] file:px-3 file:py-2 file:text-xs file:font-bold file:text-[#090B0F] disabled:opacity-50"
+              />
+            </label>
+            {importingSpreadsheet && <p role="status" className="text-xs text-[#20C878]">Reading and validating spreadsheet…</p>}
+            {spreadsheetError && <p role="alert" className="text-xs text-rose-400">{spreadsheetError}</p>}
           </div>
 
           <div className="flex flex-col gap-2">
@@ -910,11 +1011,101 @@ export const AdminPage: React.FC = () => {
               <CheckCircle2 className="w-5 h-5 text-[#20C878]" />
               <span>
                 Import complete: <strong>{importResult.imported} players imported</strong>,{' '}
-                <strong>{importResult.duplicates} duplicates ignored</strong>.
+                <strong>{importResult.duplicates} duplicates ignored</strong>
+                {importResult.rowErrors && importResult.rowErrors.length > 0 && (
+                  <>; <strong>{importResult.rowErrors.length} invalid rows skipped</strong></>
+                )}.
               </span>
             </div>
           )}
+          {importResult?.rowErrors && importResult.rowErrors.length > 0 && (
+            <div className="rounded-2xl border border-amber-400/20 bg-amber-400/5 p-4 text-xs text-amber-200">
+              <p className="font-semibold">Check these spreadsheet rows:</p>
+              <ul className="mt-2 list-inside list-disc space-y-1">
+                {importResult.rowErrors.slice(0, 5).map((rowError) => <li key={rowError}>{rowError}</li>)}
+              </ul>
+              {importResult.rowErrors.length > 5 && (
+                <p className="mt-2">And {importResult.rowErrors.length - 5} more invalid rows.</p>
+              )}
+            </div>
+          )}
           </div>
+          {showSpreadsheetTemplate && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+              onMouseDown={(event) => {
+                if (event.target === event.currentTarget) setShowSpreadsheetTemplate(false);
+              }}
+            >
+              <section
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="spreadsheet-template-title"
+                className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-white/10 bg-[#121720] p-5 shadow-2xl sm:p-6"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h3 id="spreadsheet-template-title" className="text-lg font-bold text-white">
+                      Excel player template
+                    </h3>
+                    <p className="mt-1 text-xs text-[#929BA8]">
+                      The workbook includes a sample row and columns for player details, ratings, attributes, and T20/ODI/Test stats.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowSpreadsheetTemplate(false)}
+                    aria-label="Close template preview"
+                    className="rounded-lg px-3 py-1.5 text-sm font-semibold text-[#929BA8] hover:bg-white/5 hover:text-white"
+                  >
+                    Close
+                  </button>
+                </div>
+                <div className="mt-5 overflow-x-auto rounded-xl border border-white/10">
+                  <table className="w-full min-w-[560px] text-left text-xs">
+                    <thead className="bg-white/5 text-[#929BA8]">
+                      <tr>
+                        <th className="p-3">Column</th>
+                        <th className="p-3">Sample value</th>
+                        <th className="p-3">Requirement</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5 text-white">
+                      {[
+                        ['fullName', 'Sample Player', 'Required'],
+                        ['country', 'India', 'Required'],
+                        ['primaryRole', 'Batter', 'Optional; defaults to Batter'],
+                        ['specialization', 'Top-order batter', 'Optional'],
+                        ['battingHand', 'Right-hand bat', 'Optional'],
+                        ['T20 Runs', '0', 'Optional'],
+                        ['ODI Matches', '0', 'Optional'],
+                        ['TEST Wickets', '0', 'Optional'],
+                      ].map(([column, value, requirement]) => (
+                        <tr key={column}>
+                          <td className="p-3 font-mono">{column}</td>
+                          <td className="p-3">{value}</td>
+                          <td className="p-3 text-[#929BA8]">{requirement}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="mt-3 text-[11px] text-[#929BA8]">
+                  Keep the first row as the column headers. The importer skips invalid rows and reports duplicates.
+                </p>
+                {spreadsheetError && <p role="alert" className="mt-2 text-xs text-rose-400">{spreadsheetError}</p>}
+                <div className="mt-5 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => void handleDownloadSpreadsheetTemplate()}
+                    className="rounded-xl bg-[#20C878] px-4 py-2.5 text-xs font-bold text-[#090B0F] hover:bg-[#1bb56c]"
+                  >
+                    Download .xlsx template
+                  </button>
+                </div>
+              </section>
+            </div>
+          )}
         </div>
       )}
 
