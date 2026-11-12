@@ -1,108 +1,93 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, Sparkles, Trophy, Heart } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 
-export const Footer: React.FC = () => {
-  return (
-    <footer className="bg-[#090B0F] border-t border-white/5 py-12 px-4 sm:px-6 lg:px-8 mt-20">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
-        {/* Brand Col */}
-        <div className="flex flex-col gap-3 md:col-span-1">
-          <div className="flex items-center">
-            <span className="text-base font-extrabold font-heading text-white tracking-wide">
-              team11
+const builderLinks = [
+  { label: 'Dream XI', path: '/builder/dream' },
+  { label: 'Franchise XI', path: '/builder/franchise' },
+  { label: 'All-Time XI', path: '/builder/all-time' },
+  { label: 'International XI', path: '/builder/international' },
+  { label: 'Custom Pool XI', path: '/builder/custom-pool' },
+  { label: 'Auto-Generated XI', path: '/generator' },
+];
+
+export const Footer: React.FC = () => (
+  <footer className="border-t border-[#262A32] bg-[#090A0D] px-4 pb-8 pt-12 sm:px-6 lg:px-8">
+    <div className="mx-auto grid max-w-7xl gap-10 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
+      <div>
+        <Link to="/" className="inline-flex items-center gap-2.5 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#B7BBC4]">
+          <span className="grid h-8 w-8 place-items-center rounded-lg border border-[#454B56] bg-[#171A20] font-heading text-xs font-bold text-[#D4D7DC]">XI</span>
+          <span className="font-heading text-lg font-semibold tracking-[-0.04em] text-[#F5F5F6]">team11</span>
+        </Link>
+        <p className="mt-4 max-w-xs text-xs leading-5 text-[#858B96]">
+          A thoughtful workspace for building, analyzing and sharing cricket Playing XIs.
+        </p>
+        <Link
+          to="/builder/dream"
+          className="mt-5 inline-flex items-center gap-1.5 text-xs font-semibold text-[#C3C7CE] transition hover:text-white"
+        >
+          Start building <ArrowUpRight className="h-3.5 w-3.5" />
+        </Link>
+      </div>
+
+      <div>
+        <h2 className="text-[10px] font-semibold tracking-[0.16em] text-[#D4D6DB]">BUILDER MODES</h2>
+        <ul className="mt-4 space-y-2.5">
+          {builderLinks.map((link) => (
+            <li key={link.path}>
+              <Link to={link.path} className="text-xs text-[#858B96] transition hover:text-[#F5F5F6]">
+                {link.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div>
+        <h2 className="text-[10px] font-semibold tracking-[0.16em] text-[#D4D6DB]">EXPLORE</h2>
+        <ul className="mt-4 space-y-2.5">
+          {[
+            { label: 'Players', path: '/players' },
+            { label: 'Teams', path: '/teams' },
+            { label: 'Competitions', path: '/competitions' },
+            { label: 'Custom Pools', path: '/pools' },
+            { label: 'Community Lineups', path: '/explore' },
+            { label: 'My Teams', path: '/my-teams' },
+          ].map((link) => (
+            <li key={link.path}>
+              <Link to={link.path} className="text-xs text-[#858B96] transition hover:text-[#F5F5F6]">
+                {link.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div>
+        <h2 className="text-[10px] font-semibold tracking-[0.16em] text-[#D4D6DB]">TEAM11</h2>
+        <ul className="mt-4 space-y-2.5">
+          <li>
+            <Link to="/#how-it-works" className="text-xs text-[#858B96] transition hover:text-[#F5F5F6]">
+              About
+            </Link>
+          </li>
+          <li>
+            <span aria-disabled="true" title="Privacy information is not available in this app yet" className="cursor-not-allowed text-xs text-[#5F6570]">
+              Privacy
             </span>
-          </div>
-          <p className="text-xs text-[#929BA8] leading-relaxed">
-            The premier cricket tactical lineup workstation. Built specifically for IPL fans, cricket analysts, and tactical enthusiasts across the globe.
-          </p>
-          <div className="text-[11px] text-[#20C878] bg-[#20C878]/10 border border-[#20C878]/20 p-2.5 rounded-xl font-medium mt-1">
-            ⚡ 100% Free & Open Tactical Workbench. No fantasy betting or monetary wagering.
-          </div>
-        </div>
-
-        {/* Builder Modes */}
-        <div className="flex flex-col gap-2">
-          <span className="text-xs font-bold uppercase tracking-wider text-white font-heading">
-            Lineup Builder Modes
-          </span>
-          <div className="flex flex-col gap-1.5 text-xs text-[#929BA8]">
-            <Link to="/builder/dream" className="hover:text-[#20C878] transition-colors">
-              Dream XI (Global Pool)
-            </Link>
-            <Link to="/builder/franchise" className="hover:text-[#20C878] transition-colors">
-              Franchise Squad XI (CSK, MI, RCB...)
-            </Link>
-            <Link to="/builder/all-time" className="hover:text-[#20C878] transition-colors">
-              All-Time Legends XI
-            </Link>
-            <Link to="/builder/international" className="hover:text-[#20C878] transition-colors">
-              International World Cup XI
-            </Link>
-            <Link to="/builder/custom-pool" className="hover:text-[#20C878] transition-colors">
-              Custom Player Pool XI
-            </Link>
-            <Link to="/generator" className="hover:text-[#20C878] transition-colors">
-              Automatic XI Optimizer
-            </Link>
-          </div>
-        </div>
-
-        {/* Database & Tactical Tools */}
-        <div className="flex flex-col gap-2">
-          <span className="text-xs font-bold uppercase tracking-wider text-white font-heading">
-            Tactical & Analytics Tools
-          </span>
-          <div className="flex flex-col gap-1.5 text-xs text-[#929BA8]">
-            <Link to="/players" className="hover:text-[#20C878] transition-colors">
-              Centralized Players Database
-            </Link>
-            <Link to="/teams" className="hover:text-[#20C878] transition-colors">
-              Teams & Squads
-            </Link>
-            <Link to="/competitions" className="hover:text-[#20C878] transition-colors">
-              Competitions & Squad Rosters
-            </Link>
-            <Link to="/compare" className="hover:text-[#20C878] transition-colors">
-              Player & Lineup Head-to-Head
-            </Link>
-            <Link to="/pools" className="hover:text-[#20C878] transition-colors">
-              Custom Player Pool Studio
-            </Link>
-            <Link to="/explore" className="hover:text-[#20C878] transition-colors">
-              Community Tactical Gallery
-            </Link>
-            <Link to="/admin" className="hover:text-[#20C878] transition-colors">
-              Supabase Database Schema
-            </Link>
-          </div>
-        </div>
-
-        {/* Tactical Rules & Architecture */}
-        <div className="flex flex-col gap-2">
-          <span className="text-xs font-bold uppercase tracking-wider text-white font-heading">
-            Broadcasting Standards
-          </span>
-          <p className="text-xs text-[#929BA8] leading-relaxed">
-            Strict adherence to real cricket competition rules, 4-overseas IPL player caps, wicketkeeper verification, and authentic attribute-driven tactical balance.
-          </p>
-          <div className="mt-2 text-[11px] text-[#929BA8]">
-            Built with React 19, TypeScript, Tailwind CSS, and Supabase PostgreSQL.
-          </div>
-        </div>
+          </li>
+          <li>
+            <span aria-disabled="true" title="Terms are not available in this app yet" className="cursor-not-allowed text-xs text-[#5F6570]">
+              Terms
+            </span>
+          </li>
+        </ul>
       </div>
+    </div>
 
-      <div className="max-w-7xl mx-auto border-t border-white/5 mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-[#929BA8] gap-4">
-        <span>© 2025 team11. All cricket statistics and franchise badges are property of their respective cricket boards.</span>
-        <div className="flex items-center gap-4">
-          <Link to="/admin" className="hover:text-white transition-colors">
-            Admin Schema
-          </Link>
-          <Link to="/explore" className="hover:text-white transition-colors">
-            Trending XIs
-          </Link>
-        </div>
-      </div>
-    </footer>
-  );
-};
+    <div className="mx-auto mt-10 flex max-w-7xl flex-col gap-3 border-t border-[#262A32] pt-5 text-[10px] text-[#737984] sm:flex-row sm:items-center sm:justify-between">
+      <span>© {new Date().getFullYear()} Team11. All rights reserved.</span>
+      <span>Built for the love of cricket.</span>
+    </div>
+  </footer>
+);

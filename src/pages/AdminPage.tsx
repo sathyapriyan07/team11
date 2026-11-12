@@ -34,6 +34,7 @@ import {
   downloadPlayerSpreadsheetTemplate,
   parseCsvSpreadsheet,
   parsePlayerSpreadsheetRows,
+  PLAYER_SPREADSHEET_DROPDOWNS,
 } from '../services/playerSpreadsheetService';
 
 const DEFAULT_COMPETITION_RULES: CompetitionRules = {
@@ -908,7 +909,7 @@ export const AdminPage: React.FC = () => {
               <div>
                 <h4 className="text-sm font-bold text-white">Upload player spreadsheet</h4>
                 <p className="mt-1 text-[11px] text-[#929BA8]">
-                  First worksheet is used. Required columns: <code>fullName</code> and <code>country</code>. Other player fields and stats are optional.
+                  First worksheet is used. Required: <code>fullName</code> and <code>country</code> or <code>nationality</code>. Other fields and stats are optional.
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -1049,7 +1050,7 @@ export const AdminPage: React.FC = () => {
                       Excel player template
                     </h3>
                     <p className="mt-1 text-xs text-[#929BA8]">
-                      The workbook includes a sample row and columns for player details, ratings, attributes, and T20/ODI/Test stats.
+                      The workbook includes a sample row and dropdown lists for role, specialization, batting hand, and bowling style.
                     </p>
                   </div>
                   <button
@@ -1073,10 +1074,11 @@ export const AdminPage: React.FC = () => {
                     <tbody className="divide-y divide-white/5 text-white">
                       {[
                         ['fullName', 'Sample Player', 'Required'],
-                        ['country', 'India', 'Required'],
-                        ['primaryRole', 'Batter', 'Optional; defaults to Batter'],
-                        ['specialization', 'Top-order batter', 'Optional'],
-                        ['battingHand', 'Right-hand bat', 'Optional'],
+                        ['country or nationality', 'India', 'One required'],
+                        ['primaryRole', PLAYER_SPREADSHEET_DROPDOWNS.primaryRole.join(', '), 'Dropdown'],
+                        ['specialization', PLAYER_SPREADSHEET_DROPDOWNS.specialization.join(', '), 'Dropdown'],
+                        ['battingHand', PLAYER_SPREADSHEET_DROPDOWNS.battingHand.join(', '), 'Dropdown'],
+                        ['bowlingStyle', PLAYER_SPREADSHEET_DROPDOWNS.bowlingStyle.join(', '), 'Dropdown'],
                         ['T20 Runs', '0', 'Optional'],
                         ['ODI Matches', '0', 'Optional'],
                         ['TEST Wickets', '0', 'Optional'],

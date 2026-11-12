@@ -1,9 +1,18 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { ValidationResult } from '../../types/cricket';
-import { CheckCircle2, AlertTriangle, XCircle, ChevronDown, ChevronUp, Shield, Crown } from 'lucide-react';
+import { AlertTriangle, Check, ChevronRight, CircleAlert, ShieldCheck } from 'lucide-react';
+
+export interface BuilderConfigurationIssue {
+  label: string;
+  message: string;
+  field: 'competition' | 'team' | 'pool';
+}
 
 interface RulesValidationBarProps {
   validation: ValidationResult;
+  configurationIssues?: BuilderConfigurationIssue[];
+  onFixConfiguration?: (field: BuilderConfigurationIssue['field']) => void;
+  onReviewLineup?: () => void;
   onSaveDraft?: () => void;
   onSaveCompleted?: () => void;
   canSave?: boolean;
@@ -11,182 +20,169 @@ interface RulesValidationBarProps {
 
 export const RulesValidationBar: React.FC<RulesValidationBarProps> = ({
   validation,
+  configurationIssues = [],
+  onFixConfiguration,
+  onReviewLineup,
   onSaveDraft,
   onSaveCompleted,
   canSave = true,
 }) => {
-  const [showDetails, setShowDetails] = useState<boolean>(false);
+  const isReady = validation.isValid &&
+    validation.playersCount === validation.requiredPlayersCount &&
+    configurationIssues.length === 0;
+  const blockingCount = validation.errors.length + configurationIssues.length;
+  const statusLabel = isReady
+    ? 'Ready to publish'
+    : blockingCount > 0
+    ? `${blockingCount} item${blockingCount === 1 ? '' : 's'} to fix`
+    : 'Requirements met · review advisories';
 
-  const isCompletedReady = validation.isValid && validation.playersCount === 11;
+  const requirementRows = [
+    {
+      label: 'Starting XI',
+      value: `${validation.playersCount} / ${validation.requiredPlayersCount}`,
+      complete: validation.playersCount === validation.requiredPlayersCount,
+    },
+    {
+      label: 'Captain',
+      value: validation.hasCaptain ? 'Assigned' : validation.requireCaptain ? 'Required' : 'Optional',
+      complete: validation.hasCaptain || !validation.requireCaptain,
+    },
+    {
+      label: 'Vice-captain',
+      value: validation.hasViceCaptain ? 'Assigned' : validation.requireViceCaptain ? 'Required' : 'Optional',
+      complete: validation.hasViceCaptain || !validation.requireViceCaptain,
+    },
+    {
+      label: 'Wicketkeepers',
+      value: `${validation.wicketkeepersCount} · ${validation.minWicketkeepers}–${validation.maxWicketkeepers}`,
+      complete: validation.wicketkeepersCount >= validation.minWicketkeepers &&
+        validation.wicketkeepersCount <= validation.maxWicketkeepers,
+    },
+    {
+      label: 'Overseas',
+      value: `${validation.overseasCount} / ${validation.maxOverseas}`,
+      complete: validation.overseasCount <= validation.maxOverseas,
+    },
+  ];
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#121720]">
-      {/* Top Banner Status Bar */}
-      <div className="flex flex-col gap-2 p-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3 sm:p-3">
-        {/* Main Status Pill */}
-        <div className="flex min-w-0 items-center gap-2">
-          <div
-            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
-              validation.status === 'valid'
-                ? 'bg-[#20C878]/20 text-[#20C878]'
-                : validation.status === 'warning'
-                ? 'bg-amber-500/20 text-amber-400'
-                : 'bg-rose-500/20 text-rose-400'
-            }`}
-          >
-            {validation.status === 'valid' && <CheckCircle2 className="h-4 w-4" />}
-            {validation.status === 'warning' && <AlertTriangle className="h-4 w-4" />}
-            {validation.status === 'invalid' && <XCircle className="h-4 w-4" />}
+    <section className="rounded-2xl border border-[#262A32] bg-[#111318]" aria-label="Lineup validation">
+      <div className="flex flex-col gap-4 p-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
+          <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl border ${
+            isReady
+              ? 'border-[#4A505B] bg-[#242830] text-[#D4D7DC]'
+              : blockingCount
+              ? 'border-rose-400/20 bg-rose-400/10 text-rose-300'
+              : 'border-amber-300/20 bg-amber-300/10 text-amber-200'
+          }`}>
+            {isReady ? <ShieldCheck className="h-4 w-4" /> : blockingCount ? <CircleAlert className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
           </div>
-
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <span
-                className={`text-[9px] font-bold uppercase tracking-wide sm:text-[10px] ${
-                  validation.status === 'valid'
-                    ? 'text-[#20C878]'
-                    : validation.status === 'warning'
-                    ? 'text-amber-400'
-                    : 'text-rose-400'
-                }`}
-              >
-                {validation.status === 'valid'
-                  ? 'Rules Compliant & Match-Ready'
-                  : validation.status === 'warning'
-                  ? 'Lineup Advisory Warning'
-                  : 'Rules Infraction Detected'}
-              </span>
-            </div>
-            <p className="mt-0.5 text-[9px] leading-snug text-[#929BA8] sm:text-[10px]">
-              {validation.errors.length > 0
-                ? validation.errors[0]
-                : validation.warnings.length > 0
-                ? validation.warnings[0]
-                : 'Lineup meets all competition parameters, quota limits and role constraints.'}
+            <h2 className="text-sm font-semibold text-[#F2F3F5]">{statusLabel}</h2>
+            <p className="mt-1 text-xs leading-5 text-[#858B96]">
+              {isReady
+                ? 'Competition requirements are satisfied for this lineup.'
+                : 'Required rules block publishing; advisories are recommendations only.'}
             </p>
           </div>
         </div>
 
-        {/* Tactical Counters */}
-        <div className="flex w-full flex-wrap items-center gap-1.5 text-[9px] sm:w-auto sm:gap-2 sm:text-[10px]">
-          {/* Starting Count */}
-          <div className="flex shrink-0 items-center gap-1 rounded-lg border border-white/5 bg-[#181F29] px-2 py-1">
-            <span className="text-[#929BA8]">XI:</span>
-            <span
-              className={`font-bold ${
-                validation.playersCount === 11 ? 'text-[#20C878]' : 'text-amber-400'
-              }`}
-            >
-              {validation.playersCount} / 11
-            </span>
-          </div>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:flex lg:flex-wrap lg:justify-end">
+          {requirementRows.map((row) => (
+            <div key={row.label} className="min-w-[104px] rounded-lg border border-white/[0.07] bg-[#171A20] px-3 py-2">
+              <p className="text-[9px] text-[#858B96]">{row.label}</p>
+              <p className={`mt-1 flex items-center gap-1 text-[11px] font-semibold ${
+                row.complete ? 'text-[#D2D5DB]' : 'text-amber-200'
+              }`}>
+                {row.complete && <Check className="h-3 w-3" />}
+                {row.value}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
 
-          {/* Overseas Count */}
-          <div className="flex shrink-0 items-center gap-1 rounded-lg border border-white/5 bg-[#181F29] px-2 py-1">
-            <span className="text-[#929BA8]">Overseas:</span>
-            <span
-              className={`font-bold ${
-                validation.overseasCount <= validation.maxOverseas ? 'text-[#20C878]' : 'text-rose-400'
-              }`}
-            >
-              {validation.overseasCount} / {validation.maxOverseas}
-            </span>
-          </div>
-
-          {/* Captain & Keeper Status */}
-          <div className="hidden sm:flex items-center gap-2">
-            <span
-              title={validation.hasCaptain ? 'Captain Assigned' : 'Missing Captain'}
-              className={`px-2 py-1 rounded-lg text-[11px] font-bold ${
-                validation.hasCaptain
-                  ? 'bg-amber-400/20 text-amber-300'
-                  : 'bg-white/5 text-[#929BA8] line-through'
-              }`}
-            >
-              C
-            </span>
-            <span
-              title={validation.hasViceCaptain ? 'Vice Captain Assigned' : 'Missing Vice Captain'}
-              className={`px-2 py-1 rounded-lg text-[11px] font-bold ${
-                validation.hasViceCaptain
-                  ? 'bg-sky-400/20 text-sky-300'
-                  : 'bg-white/5 text-[#929BA8] line-through'
-              }`}
-            >
-              VC
-            </span>
-            <span
-              title={validation.hasWicketkeeper ? 'Keeper Assigned' : 'Missing Keeper'}
-              className={`px-2 py-1 rounded-lg text-[11px] font-bold ${
-                validation.hasWicketkeeper
-                  ? 'bg-emerald-400/20 text-emerald-300'
-                  : 'bg-white/5 text-[#929BA8] line-through'
-              }`}
-            >
-              WK
-            </span>
-          </div>
-
-          {/* Toggle breakdown details */}
-          {(validation.errors.length > 0 || validation.warnings.length > 0) && (
-            <button
-              type="button"
-              onClick={() => setShowDetails(!showDetails)}
-              aria-label={showDetails ? 'Hide validation details' : 'Show validation details'}
-              className="rounded-lg bg-white/5 p-1 hover:bg-white/10 text-[#929BA8] hover:text-white transition-colors"
-            >
-              {showDetails ? <ChevronUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> : <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
-            </button>
+      {(configurationIssues.length > 0 || validation.errors.length > 0 || validation.warnings.length > 0) && (
+        <div className="grid gap-4 border-t border-[#262A32] p-4 md:grid-cols-2">
+          {(configurationIssues.length > 0 || validation.errors.length > 0) && (
+            <div>
+              <h3 className="text-[10px] font-semibold tracking-[0.12em] text-rose-200">Must fix</h3>
+              <ul className="mt-2 space-y-2">
+                {configurationIssues.map((issue) => (
+                  <li key={issue.field} className="flex items-start justify-between gap-3 text-xs text-[#C7CBD2]">
+                    <span>{issue.message}</span>
+                    <button
+                      type="button"
+                      onClick={() => onFixConfiguration?.(issue.field)}
+                      className="inline-flex shrink-0 items-center gap-1 text-[10px] font-semibold text-[#D2D5DB] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B7BBC4]"
+                    >
+                      Fix <ChevronRight className="h-3 w-3" />
+                    </button>
+                  </li>
+                ))}
+                {validation.errors.map((error) => (
+                  <li key={error} className="flex items-start justify-between gap-3 text-xs text-[#C7CBD2]">
+                    <span>{error}</span>
+                    <button
+                      type="button"
+                      onClick={onReviewLineup}
+                      className="inline-flex shrink-0 items-center gap-1 text-[10px] font-semibold text-[#D2D5DB] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B7BBC4]"
+                    >
+                      Review XI <ChevronRight className="h-3 w-3" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
 
-          {/* Action buttons */}
-          <div className="ml-auto flex min-w-0 items-center gap-1.5 sm:ml-0">
+          {validation.warnings.length > 0 && (
+            <div>
+              <h3 className="text-[10px] font-semibold tracking-[0.12em] text-amber-100">Tactical advisories</h3>
+              <ul className="mt-2 space-y-2 text-xs leading-5 text-[#AEB3BC]">
+                {validation.warnings.map((warning) => (
+                  <li key={warning} className="flex items-start gap-2">
+                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-200/80" />
+                    {warning}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
+      {(onSaveDraft || onSaveCompleted) && (
+        <div className="sticky bottom-0 z-20 flex flex-wrap items-center justify-between gap-3 border-t border-[#262A32] bg-[#111318]/95 p-3 backdrop-blur-md sm:static sm:bg-transparent sm:backdrop-blur-none">
+          <span className="text-[10px] text-[#858B96]">
+            {validation.requireViceCaptain ? 'Captain and vice-captain are required by competition rules.' : 'Competition rules are applied to this XI.'}
+          </span>
+          <div className="ml-auto flex items-center gap-2">
             {onSaveDraft && (
               <button
                 type="button"
                 onClick={onSaveDraft}
                 disabled={!canSave}
-                className="min-h-7 whitespace-nowrap rounded-lg border border-white/5 bg-[#181F29] px-2 py-1 text-[9px] font-semibold text-[#929BA8] transition-colors hover:bg-[#202938] hover:text-white disabled:cursor-not-allowed disabled:opacity-40 sm:min-h-8 sm:px-2.5 sm:text-[10px]"
+                className="min-h-10 rounded-lg border border-[#343943] px-4 text-xs font-medium text-[#D2D5DB] transition hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-40"
               >
-                Save Draft
+                Save draft
               </button>
             )}
-
             {onSaveCompleted && (
               <button
                 type="button"
                 onClick={onSaveCompleted}
-                disabled={!canSave || !isCompletedReady}
-                className={`min-h-7 whitespace-nowrap rounded-lg px-2 py-1 text-[9px] font-bold transition-all sm:min-h-8 sm:px-2.5 sm:text-[10px] ${
-                  isCompletedReady
-                    ? 'bg-[#20C878] hover:bg-[#1bb56c] text-[#090B0F]'
-                    : 'bg-white/10 text-white/40 cursor-not-allowed'
-                }`}
+                disabled={!canSave || !isReady}
+                className="min-h-10 rounded-lg bg-[#B7BBC4] px-4 text-xs font-semibold text-[#111318] transition hover:bg-[#D5D8DE] disabled:cursor-not-allowed disabled:bg-[#3B4049] disabled:text-[#858B96]"
               >
-                Save Completed XI
+                Publish XI
               </button>
             )}
           </div>
         </div>
-      </div>
-
-      {/* Expandable Breakdown Drawer */}
-      {showDetails && (validation.errors.length > 0 || validation.warnings.length > 0) && (
-        <div className="p-4 bg-[#181F29] border-t border-white/5 flex flex-col gap-2 text-xs">
-          {validation.errors.map((err, i) => (
-            <div key={`err-${i}`} className="flex items-center gap-2 text-rose-400">
-              <XCircle className="w-4 h-4 shrink-0" />
-              <span>{err}</span>
-            </div>
-          ))}
-          {validation.warnings.map((warn, i) => (
-            <div key={`warn-${i}`} className="flex items-center gap-2 text-amber-300">
-              <AlertTriangle className="w-4 h-4 shrink-0" />
-              <span>{warn}</span>
-            </div>
-          ))}
-        </div>
       )}
-    </div>
+    </section>
   );
 };

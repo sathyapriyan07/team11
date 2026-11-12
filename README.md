@@ -31,6 +31,8 @@ Admins can create and edit teams and competitions from their respective catalog 
 
 The admin panel's **Bulk Data Importer** includes a Wikipedia import workflow for players, team squads, teams, and competitions, plus player-stat imports from Wikipedia or the [Cricket-API](https://github.com/tarun7r/Cricket-API). To enable Cricket-API imports, set `VITE_CRICKET_API_BASE_URL` in `.env.local` and in the hosting environment to the base URL of a deployed instance; the instance must allow browser CORS requests from the app's origin. The GitHub repository contains the Flask source, not a hosted API URL. Cricket-API stats are imported into the existing Test, ODI, and T20 records; review the preview because this API scrapes Cricbuzz and may return incomplete data.
 
+Admins can also upload player spreadsheets (`.xlsx`, `.xlsm`, or `.csv`) from the bulk importer. Use **Preview template** to inspect the expected columns and **Download Excel template** to get a workbook with a sample player row. `fullName` and either `country` or `nationality` are required; other fields are optional and receive safe defaults. Uploads are limited to 10 MB and 5,000 players per file; duplicate names are ignored and invalid rows are reported.
+
 The shared catalog is publicly readable and editable only by authorized admins. Uploaded player images are publicly viewable; uploads are admin-only and limited to 5 MB JPEG, PNG, WebP, or GIF files. Custom pools, saved playing XIs, likes, and bookmarks remain in browser storage because they are user-specific and this setup does not add end-user accounts. If Supabase variables are absent, the app continues to use browser storage.
 
 # team11

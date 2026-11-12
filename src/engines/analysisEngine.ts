@@ -4,185 +4,225 @@ interface ResolvedTeamPlayer extends UserTeamPlayer {
   player: Player;
 }
 
+const average = (values: number[]): number | null =>
+  values.length ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length) : null;
+
 export function analyzeTeam(
   teamPlayers: UserTeamPlayer[],
   allPlayers: Player[],
-  format: CricketFormat = 'T20'
+  format: CricketFormat = 'T20',
 ): TeamAnalysis {
-  const playersMap = new Map<string, Player>();
-  allPlayers.forEach((p) => playersMap.set(p.id, p));
+  const playersMap = new Map(allPlayers.map((player) => [player.id, player]));
+  const resolved = teamPlayers
+    .map((teamPlayer) => {
+      const player = playersMap.get(teamPlayer.playerId);
+      return player ? { ...teamPlayer, player } : null;
+    })
+    .filter((player): player is ResolvedTeamPlayer => player !== null)
+    .sort((a, b) => a.battingOrder - b.battingOrder);
 
-  const resolved: ResolvedTeamPlayer[] = [];
-  teamPlayers.forEach((tp) => {
-    const player = playersMap.get(tp.playerId);
-    if (player) {
-      resolved.push({ ...tp, player });
-    }
-  });
+  const emptyAnalysis: TeamAnalysis = {
+    overallRating: null,
+    battingStrength: null,
+    bowlingStrength: null,
+    paceAttackStrength: null,
+    spinAttackStrength: null,
+    allRoundStrength: null,
+    fieldingStrength: null,
+    wicketkeepingStrength: null,
+    finishingStrength: null,
+    battingDepth: null,
+    openingCombination: null,
+    middleOrderStability: null,
+    deathOverBowlingStrength: null,
+    experienceRating: null,
+    openingPair: [],
+    leftRightBalance: { rightHanders: 0, leftHanders: 0 },
+    roleDistribution: { batters: 0, wicketkeepers: 0, allRounders: 0, bowlers: 0 },
+    bowlingBreakdown: { paceBowlers: 0, spinBowlers: 0, sixthBowlingOption: false },
+    strengths: [],
+    weaknesses: [],
+    recommendations: ['Select players to begin team analysis.'],
+  };
+  if (!resolved.length) return emptyAnalysis;
 
-  resolved.sort((a, b) => a.battingOrder - b.battingOrder);
-
-  if (resolved.length === 0) {
-    return {
-      overallRating: 0,
-      battingStrength: 0,
-      bowlingStrength: 0,
-      paceAttackStrength: 0,
-      spinAttackStrength: 0,
-      allRoundStrength: 0,
-      fieldingStrength: 0,
-      wicketkeepingStrength: 0,
-      finishingStrength: 0,
-      battingDepth: 0,
-      experienceRating: 0,
-      leftRightBalance: { rightHanders: 0, leftHanders: 0 },
-      roleDistribution: { batters: 0, wicketkeepers: 0, allRounders: 0, bowlers: 0 },
-      bowlingBreakdown: { paceBowlers: 0, spinBowlers: 0, sixthBowlingOption: false },
-      strengths: ['Add players to begin tactical team analysis.'],
-      weaknesses: ['Team lineup incomplete.'],
-      recommendations: ['Select 11 players including top order, middle order, all-rounders and frontline bowlers.'],
-    };
-  }
-
-  // Calculate format-specific rating
   const formatRatingKey = format === 'ODI' ? 'ODI' : format === 'TEST' ? 'TEST' : 'T20';
-  const avgOverall = Math.round(
-    resolved.reduce((sum, item) => sum + (item.player.formatRatings[formatRatingKey] || item.player.overallRating), 0) /
-      resolved.length
+  const overallRating = average(
+    resolved.map(({ player }) => player.formatRatings[formatRatingKey] ?? player.overallRating),
+  );
+  const battingWeights = resolved.map(({ battingOrder }) =>
+    battingOrder <= 4 ? 1.2 : battingOrder <= 7 ? 1 : battingOrder <= 9 ? 0.6 : 0.3,
+  );
+  const battingWeightTotal = battingWeights.reduce((sum, weight) => sum + weight, 0);
+  const battingStrength = battingWeightTotal
+    ? Math.round(
+        resolved.reduce((sum, item, index) => {
+          const attributes = item.player.attributes;
+          const score =
+            attributes.technique * 0.25 +
+            attributes.powerHitting * 0.25 +
+            attributes.timing * 0.2 +
+            attributes.againstPace * 0.15 +
+            attributes.againstSpin * 0.15;
+          return sum + score * battingWeights[index];
+        }, 0) / battingWeightTotal,
+      )
+    : null;
+
+  const bowlingOptions = resolved.filter(
+    ({ player }) =>
+      player.primaryRole === 'Bowler' ||
+      player.primaryRole === 'All-rounder' ||
+      player.attributes.control > 65,
+  );
+  const bowlingScores = bowlingOptions
+    .map(({ player }) => {
+      const attributes = player.attributes;
+      return (
+        attributes.accuracy * 0.25 +
+        attributes.variations * 0.25 +
+        attributes.control * 0.2 +
+        attributes.deathBowling * 0.15 +
+        attributes.powerplayBowling * 0.15
+      );
+    })
+    .sort((a, b) => b - a)
+    .slice(0, 5);
+  const bowlingStrength = average(bowlingScores);
+
+  const paceBowlers = resolved.filter(
+    ({ player }) =>
+      player.bowlingStyle.includes('fast') || player.bowlingStyle.includes('medium'),
+  );
+  const spinBowlers = resolved.filter(
+    ({ player }) =>
+      player.bowlingStyle.includes('break') ||
+      player.bowlingStyle.includes('spin') ||
+      player.bowlingStyle.includes('orthodox'),
+  );
+  const paceAttackStrength = average(
+    paceBowlers.map(({ player }) =>
+      player.attributes.pace * 0.4 +
+      player.attributes.swing * 0.3 +
+      player.attributes.deathBowling * 0.3,
+    ),
+  );
+  const spinAttackStrength = average(
+    spinBowlers.map(({ player }) =>
+      player.attributes.spin * 0.5 +
+      player.attributes.variations * 0.3 +
+      player.attributes.control * 0.2,
+    ),
   );
 
-  // Batting Strength (weighted heavily towards top 7)
-  let battingTotal = 0;
-  resolved.forEach((item, index) => {
-    const attr = item.player.attributes;
-    const baseBat = (attr.technique * 0.25 + attr.powerHitting * 0.25 + attr.timing * 0.2 + attr.againstPace * 0.15 + attr.againstSpin * 0.15);
-    const weight = index < 4 ? 1.2 : index < 7 ? 1.0 : index < 9 ? 0.6 : 0.3;
-    battingTotal += baseBat * weight;
-  });
-  const battingStrength = Math.min(99, Math.round(battingTotal / (4 * 1.2 + 3 * 1.0 + 2 * 0.6 + (resolved.length - 9) * 0.3 || 1)));
-
-  // Bowling Strength (weighted towards specialists and all-rounders)
-  const bowlers = resolved.filter(
-    (item) => item.player.primaryRole === 'Bowler' || item.player.primaryRole === 'All-rounder' || item.player.attributes.control > 65
+  const allRounders = resolved.filter(({ player }) => player.primaryRole === 'All-rounder');
+  const allRoundStrength = average(allRounders.map(({ player }) => player.attributes.versatility));
+  const fieldingStrength = average(
+    resolved.map(({ player }) =>
+      (player.attributes.catching + player.attributes.groundFielding + player.attributes.throwing) / 3,
+    ),
   );
-  let bowlingStrength = 0;
-  if (bowlers.length > 0) {
-    const bowlingScores = bowlers.map((b) => {
-      const a = b.player.attributes;
-      return (a.accuracy * 0.25 + a.variations * 0.25 + a.control * 0.2 + a.deathBowling * 0.15 + a.powerplayBowling * 0.15);
-    });
-    // take top 5 bowlers
-    bowlingScores.sort((a, b) => b - a);
-    const top5 = bowlingScores.slice(0, 5);
-    bowlingStrength = Math.min(99, Math.round(top5.reduce((sum, val) => sum + val, 0) / (top5.length || 1)));
-  }
-
-  // Pace Attack vs Spin Attack
-  const paceBowlersList = resolved.filter(
-    (item) => item.player.bowlingStyle.includes('fast') || item.player.bowlingStyle.includes('medium')
+  const keepers = resolved.filter(
+    ({ isWicketkeeper, player }) =>
+      isWicketkeeper ||
+      player.primaryRole === 'Wicketkeeper' ||
+      player.secondaryRoles.includes('Wicketkeeper'),
   );
-  const spinBowlersList = resolved.filter(
-    (item) => item.player.bowlingStyle.includes('break') || item.player.bowlingStyle.includes('spin') || item.player.bowlingStyle.includes('orthodox')
+  const wicketkeepingAttributes = keepers.flatMap(({ player }) =>
+    [
+      player.attributes.wkCatching,
+      player.attributes.wkReflexes,
+      player.attributes.wkStumping,
+      player.attributes.wkGlovework,
+      player.attributes.wkPositioning,
+    ].filter((value): value is number => typeof value === 'number'),
   );
+  const wicketkeepingStrength = average(wicketkeepingAttributes);
 
-  const paceAttackStrength = paceBowlersList.length > 0
-    ? Math.min(99, Math.round(paceBowlersList.reduce((s, p) => s + (p.player.attributes.pace * 0.4 + p.player.attributes.swing * 0.3 + p.player.attributes.deathBowling * 0.3), 0) / paceBowlersList.length))
-    : 40;
-
-  const spinAttackStrength = spinBowlersList.length > 0
-    ? Math.min(99, Math.round(spinBowlersList.reduce((s, p) => s + (p.player.attributes.spin * 0.5 + p.player.attributes.variations * 0.3 + p.player.attributes.control * 0.2), 0) / spinBowlersList.length))
-    : 35;
-
-  // All-round Strength
-  const allRounders = resolved.filter((item) => item.player.primaryRole === 'All-rounder');
-  const allRoundStrength = Math.min(99, Math.round(
-    resolved.reduce((s, item) => s + item.player.attributes.versatility, 0) / resolved.length + (allRounders.length >= 2 ? 6 : 0)
-  ));
-
-  // Fielding & Wicketkeeping Strength
-  const fieldingStrength = Math.min(99, Math.round(
-    resolved.reduce((s, item) => s + (item.player.attributes.catching + item.player.attributes.groundFielding + item.player.attributes.throwing) / 3, 0) / resolved.length
-  ));
-
-  const keepers = resolved.filter((item) => item.isWicketkeeper || item.player.primaryRole === 'Wicketkeeper');
-  const wicketkeepingStrength = keepers.length > 0
-    ? Math.min(99, Math.round(Math.max(...keepers.map((k) => k.player.attributes.wkCatching || 85))))
-    : 50;
-
-  // Finishing Strength (Batting #5 to #8)
-  const finishers = resolved.slice(4, 8);
-  const finishingStrength = finishers.length > 0
-    ? Math.min(99, Math.round(finishers.reduce((s, f) => s + (f.player.attributes.powerHitting * 0.5 + f.player.attributes.finishing * 0.5), 0) / finishers.length))
-    : 60;
-
-  // Batting Depth (count players in top 9 who have batting technique/power >= 70)
-  const reliableBatters = resolved.filter((item, idx) => idx < 9 && (item.player.attributes.technique >= 70 || item.player.attributes.powerHitting >= 75));
-  const battingDepth = Math.min(99, Math.round((reliableBatters.length / 9) * 100));
-
-  // Experience
-  const experienceRating = Math.round(
-    resolved.reduce((s, item) => s + item.player.attributes.experience, 0) / resolved.length
+  const finishers = resolved.filter(({ battingOrder }) => battingOrder >= 5 && battingOrder <= 8);
+  const finishingStrength = average(
+    finishers.map(({ player }) =>
+      player.attributes.powerHitting * 0.5 + player.attributes.finishing * 0.5,
+    ),
   );
+  const topNine = resolved.filter(({ battingOrder }) => battingOrder <= 9);
+  const reliableBatters = topNine.filter(
+    ({ player }) => player.attributes.technique >= 70 || player.attributes.powerHitting >= 75,
+  );
+  const battingDepth = topNine.length
+    ? Math.round((reliableBatters.length / topNine.length) * 100)
+    : null;
 
-  // Left/Right Hand balance
-  let leftHanders = 0;
-  let rightHanders = 0;
-  resolved.forEach((item) => {
-    if (item.player.battingHand === 'Left-hand bat') leftHanders++;
-    else rightHanders++;
-  });
+  const openingPlayers = resolved.filter(({ battingOrder }) => battingOrder <= 2);
+  const openingPair = openingPlayers.map(({ player }) => player.displayName);
+  const openingCombination = openingPlayers.length === 2
+    ? average(
+        openingPlayers.map(({ player }) =>
+          player.attributes.technique * 0.3 +
+          player.attributes.timing * 0.25 +
+          player.attributes.shotSelection * 0.2 +
+          player.attributes.strikeRotation * 0.15 +
+          player.attributes.consistency * 0.1,
+        ),
+      )
+    : null;
+  const middleOrder = resolved.filter(({ battingOrder }) => battingOrder >= 3 && battingOrder <= 6);
+  const middleOrderStability = middleOrder.length
+    ? average(
+        middleOrder.map(({ player }) =>
+          player.attributes.technique * 0.4 +
+          player.attributes.consistency * 0.4 +
+          player.attributes.shotSelection * 0.2,
+        ),
+      )
+    : null;
+  const deathOverBowlingStrength = average(
+    bowlingOptions.map(({ player }) =>
+      player.attributes.deathBowling * 0.45 +
+      player.attributes.variations * 0.25 +
+      player.attributes.accuracy * 0.15 +
+      player.attributes.control * 0.15,
+    ),
+  );
+  const experienceRating = average(resolved.map(({ player }) => player.attributes.experience));
 
-  // Roles
-  let batters = 0;
-  let wicketkeepers = 0;
-  let allRoundersCount = 0;
-  let bowlersCount = 0;
-  resolved.forEach((item) => {
-    if (item.isWicketkeeper || item.player.primaryRole === 'Wicketkeeper') wicketkeepers++;
-    else if (item.player.primaryRole === 'Batter') batters++;
-    else if (item.player.primaryRole === 'All-rounder') allRoundersCount++;
-    else if (item.player.primaryRole === 'Bowler') bowlersCount++;
-  });
+  const leftHanders = resolved.filter(({ player }) => player.battingHand === 'Left-hand bat').length;
+  const rightHanders = resolved.length - leftHanders;
+  const roleDistribution = {
+    batters: resolved.filter(({ isWicketkeeper, player }) => !isWicketkeeper && player.primaryRole === 'Batter').length,
+    wicketkeepers: keepers.length,
+    allRounders: allRounders.length,
+    bowlers: resolved.filter(({ player }) => player.primaryRole === 'Bowler').length,
+  };
 
-  // Strengths, Weaknesses, Recommendations
   const strengths: string[] = [];
   const weaknesses: string[] = [];
   const recommendations: string[] = [];
+  if (battingStrength !== null && battingStrength >= 85) strengths.push('Strong batting attributes across the selected order.');
+  if (bowlingStrength !== null && bowlingStrength >= 85) strengths.push('High ratings across the strongest available bowling options.');
+  if (paceAttackStrength !== null && paceAttackStrength >= 85) strengths.push('Strong pace attributes, including swing and death bowling.');
+  if (spinAttackStrength !== null && spinAttackStrength >= 85) strengths.push('Strong spin, variation and control attributes.');
+  if (finishingStrength !== null && finishingStrength >= 85) strengths.push('Strong finishing and power-hitting attributes in positions 5–8.');
+  if (leftHanders > 0 && rightHanders > 0) strengths.push('The XI includes both left- and right-handed batters.');
 
-  if (battingStrength >= 88) strengths.push('Formidable batting lineup with deep firepower and elite top order pedigree.');
-  if (bowlingStrength >= 88) strengths.push('Championship-grade bowling attack with supreme control and wicket-taking ability.');
-  if (paceAttackStrength >= 85) strengths.push('Devastating express pace unit with high-impact powerplay and death-overs execution.');
-  if (spinAttackStrength >= 85) strengths.push('Elite spin combination offering mystery, drift, and middle-overs choke.');
-  if (finishingStrength >= 88) strengths.push('Exceptional death-overs hitting capability to maximize the final 5 overs.');
-  if (leftHanders >= 3 && rightHanders >= 3) strengths.push('Superb Left/Right batting pairing to disrupt bowling plans and match-ups.');
-  if (fieldingStrength >= 88) strengths.push('Athletic fielding unit capable of saving 15-20 crucial runs in high-pressure matches.');
+  if (battingStrength !== null && battingStrength < 65) weaknesses.push('Batting attributes are below the analysis benchmark.');
+  if (bowlingStrength === null) weaknesses.push('No bowling options are present in the selected XI.');
+  else if (bowlingStrength < 65) weaknesses.push('Bowling attributes are below the analysis benchmark.');
+  if (paceBowlers.length < 2) weaknesses.push(`Only ${paceBowlers.length} pace option${paceBowlers.length === 1 ? '' : 's'} identified.`);
+  if (bowlingOptions.length > 0 && spinBowlers.length === 0) weaknesses.push('No specialist spin option is identified.');
+  if (finishingStrength !== null && finishingStrength < 65) weaknesses.push('Finishing attributes in positions 5–8 are comparatively low.');
 
-  if (battingStrength < 80) weaknesses.push('Batting lineup may lack firepower or consistency against disciplined attacks.');
-  if (bowlingStrength < 80) weaknesses.push('Bowling options may leak boundaries during middle and death overs.');
-  if (paceBowlersList.length < 2) weaknesses.push('Thin pace reserves; vulnerable on green or bouncy decks.');
-  if (spinBowlersList.length === 0) weaknesses.push('No recognized specialist spinner; will struggle on turning subcontinental wickets.');
-  if (leftHanders === 0) weaknesses.push('Exclusively right-handed batting order makes it easy for opposition captains to set defensive fields.');
-  if (bowlers.length < 5) weaknesses.push(`Only ${bowlers.length} bowling options. Minimum 5 bowlers needed to complete the quota.`);
-  if (finishingStrength < 75) weaknesses.push('Lack of established death-overs powerhitters may result in sub-par target finishes.');
-
-  if (bowlers.length === 5) {
-    recommendations.push('Add an all-rounder to provide a 6th bowling option for tactical insurance.');
+  if (bowlingOptions.length > 0 && bowlingOptions.length < 5) {
+    recommendations.push(`Review bowling depth: ${bowlingOptions.length} bowling option${bowlingOptions.length === 1 ? '' : 's'} identified.`);
   }
-  if (leftHanders === 0 || leftHanders === resolved.length) {
-    recommendations.push('Integrate a left-handed batter in the top 4 to create dynamic LHB-RHB partnerships.');
+  if (leftHanders === 0 && resolved.length > 0) {
+    recommendations.push('Consider a left-handed batter to add a different batting matchup.');
   }
-  if (paceBowlersList.length < 2) {
-    recommendations.push('Include at least 2 frontline quicks with 140+ kmph or swing capability.');
-  }
-  if (battingDepth < 75) {
-    recommendations.push('Strengthen batting depth at #7 and #8 with capable bowling all-rounders.');
-  }
-  if (strengths.length === 0) strengths.push('Good basic structure with potential for strategic refinement.');
-  if (weaknesses.length === 0) weaknesses.push('No obvious tactical vulnerabilities detected in this elite lineup.');
-  if (recommendations.length === 0) recommendations.push('Team composition is balanced and primed for tournament competition.');
+  if (paceBowlers.length < 2) recommendations.push('Consider adding another pace option.');
+  if (middleOrder.length < 2) recommendations.push('Add batting depth in positions 3–6 for a more complete middle order.');
 
   return {
-    overallRating: avgOverall,
+    overallRating,
     battingStrength,
     bowlingStrength,
     paceAttackStrength,
@@ -192,13 +232,17 @@ export function analyzeTeam(
     wicketkeepingStrength,
     finishingStrength,
     battingDepth,
+    openingCombination,
+    middleOrderStability,
+    deathOverBowlingStrength,
     experienceRating,
+    openingPair,
     leftRightBalance: { rightHanders, leftHanders },
-    roleDistribution: { batters, wicketkeepers, allRounders: allRoundersCount, bowlers: bowlersCount },
+    roleDistribution,
     bowlingBreakdown: {
-      paceBowlers: paceBowlersList.length,
-      spinBowlers: spinBowlersList.length,
-      sixthBowlingOption: bowlers.length >= 6,
+      paceBowlers: paceBowlers.length,
+      spinBowlers: spinBowlers.length,
+      sixthBowlingOption: bowlingOptions.length >= 6,
     },
     strengths,
     weaknesses,

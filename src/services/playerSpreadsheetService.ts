@@ -8,6 +8,10 @@ import type {
   PlayerSpecialization,
   PlayerStats,
 } from '../types/cricket';
+import type { SheetOptions } from 'write-excel-file/browser';
+import dataValidation, {
+  type DataValidationSheetOptions,
+} from '@onparallel/write-excel-file-data-validation';
 
 const EMPTY_STATS: PlayerStats = {
   matches: 0,
@@ -50,6 +54,12 @@ const BOWLING_STYLES: BowlingStyle[] = [
   'Left-arm orthodox', 'Left-arm wrist-spin', 'None',
 ];
 const FORMATS: CricketFormat[] = ['T20', 'ODI', 'TEST'];
+export const PLAYER_SPREADSHEET_DROPDOWNS = {
+  primaryRole: ROLES,
+  specialization: SPECIALIZATIONS,
+  battingHand: BATTING_HANDS,
+  bowlingStyle: BOWLING_STYLES,
+};
 type NumericStatsKey = Exclude<keyof PlayerStats, 'highestScore' | 'bestBowling'>;
 
 const NUMERIC_STATS: NumericStatsKey[] = [
@@ -332,8 +342,7 @@ export function parseCsvSpreadsheet(text: string): string[][] {
   return rows;
 }
 
-export async function downloadPlayerSpreadsheetTemplate(): Promise<void> {
-  const { default: writeXlsxFile } = await import('write-excel-file/browser');
+export function getPlayerSpreadsheetTemplateRows() {
   const sample: Record<string, string | number> = {
     fullName: 'Sample Player',
     displayName: 'Sample Player',
@@ -365,10 +374,35 @@ export async function downloadPlayerSpreadsheetTemplate(): Promise<void> {
     })),
     PLAYER_SPREADSHEET_HEADERS.map((header) => sample[header] ?? ''),
   ];
-  const workbook = await writeXlsxFile(rows, {
+  return rows;
+}
+
+export async function downloadPlayerSpreadsheetTemplate(): Promise<void> {
+  const { default: writeXlsxFile } = await import('write-excel-file/browser');
+  const rows = getPlayerSpreadsheetTemplateRows();
+  const dropdownValidations = Object.entries(PLAYER_SPREADSHEET_DROPDOWNS).map(([header, values]) => {
+    const column = PLAYER_SPREADSHEET_HEADERS.indexOf(header) + 1;
+    return {
+      cellRange: {
+        from: { row: 2, column },
+        to: { row: 5001, column },
+      },
+      validation: {
+        type: 'list' as const,
+        values,
+        inputTitle: `Choose ${header}`,
+        input: values.join(', '),
+        errorTitle: 'Choose a listed value',
+        error: 'Select one of the values from the dropdown list.',
+      },
+    };
+  });
+  const sheetOptions: SheetOptions<Blob> & DataValidationSheetOptions = {
     sheet: 'Players',
     columns: PLAYER_SPREADSHEET_HEADERS.map(() => ({ width: 20 })),
     showGridLines: false,
-  });
+    dataValidation: dropdownValidations,
+  };
+  const workbook = await writeXlsxFile(rows, sheetOptions, { features: [dataValidation] });
   await workbook.toFile('player-import-template.xlsx');
 }

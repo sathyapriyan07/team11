@@ -234,9 +234,12 @@ class StorageService {
   public savePlayer(player: Player): void {
     const idx = this.players.findIndex((p) => p.id === player.id);
     if (idx >= 0) {
-      this.players[idx] = player;
+      this.players[idx] = {
+        ...player,
+        createdAt: this.players[idx].createdAt || player.createdAt,
+      };
     } else {
-      this.players.push(player);
+      this.players.push({ ...player, createdAt: player.createdAt || new Date().toISOString() });
     }
     this.persistCatalogLocally();
     this.notify();
@@ -258,7 +261,7 @@ class StorageService {
       if (exists) {
         duplicates++;
       } else {
-        this.players.push(np);
+        this.players.push({ ...np, createdAt: np.createdAt || new Date().toISOString() });
         imported++;
       }
     }

@@ -94,6 +94,7 @@ export interface PlayerStats {
 
 export interface Player {
   id: string;
+  createdAt?: string;
   fullName: string;
   displayName: string;
   country: string;
@@ -228,6 +229,12 @@ export interface FieldPlacement {
   y: number; // percentage on field (0-100)
 }
 
+export interface FieldArrangement {
+  id: string;
+  name: string;
+  placements: FieldPlacement[];
+}
+
 export interface UserTeamPlayer {
   playerId: string;
   battingOrder: number; // 1 to 11
@@ -252,6 +259,7 @@ export interface UserTeam {
   impactPlayerId?: string;
   substituteIds: string[];
   fieldPlacements?: FieldPlacement[];
+  fieldingArrangements?: FieldArrangement[];
   status: 'draft' | 'completed' | 'published';
   authorName: string;
   authorId: string;
@@ -269,27 +277,37 @@ export interface ValidationResult {
   status: 'valid' | 'warning' | 'invalid';
   errors: string[];
   warnings: string[];
+  requiredPlayersCount: number;
+  minWicketkeepers: number;
+  maxWicketkeepers: number;
+  requireCaptain: boolean;
+  requireViceCaptain: boolean;
   overseasCount: number;
   maxOverseas: number;
   playersCount: number;
   hasCaptain: boolean;
   hasViceCaptain: boolean;
   hasWicketkeeper: boolean;
+  wicketkeepersCount: number;
   bowlerOptionsCount: number;
 }
 
 export interface TeamAnalysis {
-  overallRating: number;
-  battingStrength: number;
-  bowlingStrength: number;
-  paceAttackStrength: number;
-  spinAttackStrength: number;
-  allRoundStrength: number;
-  fieldingStrength: number;
-  wicketkeepingStrength: number;
-  finishingStrength: number;
-  battingDepth: number;
-  experienceRating: number;
+  overallRating: number | null;
+  battingStrength: number | null;
+  bowlingStrength: number | null;
+  paceAttackStrength: number | null;
+  spinAttackStrength: number | null;
+  allRoundStrength: number | null;
+  fieldingStrength: number | null;
+  wicketkeepingStrength: number | null;
+  finishingStrength: number | null;
+  battingDepth: number | null;
+  openingCombination: number | null;
+  middleOrderStability: number | null;
+  deathOverBowlingStrength: number | null;
+  experienceRating: number | null;
+  openingPair: string[];
   leftRightBalance: {
     rightHanders: number;
     leftHanders: number;

@@ -1,11 +1,21 @@
-import React, { useState } from 'react';
-import { Player, UserTeamPlayer, FieldingPosition } from '../../types/cricket';
-import { Shield, Sparkles, Move, Crown, Crosshair } from 'lucide-react';
+import React, { useId, useRef, useState } from 'react';
+import {
+  FieldArrangement,
+  FieldingPosition,
+  FieldPlacement,
+  Player,
+  UserTeamPlayer,
+} from '../../types/cricket';
+import { Crown, Crosshair, Shield } from 'lucide-react';
 
 interface CricketFieldSvgProps {
   teamPlayers: UserTeamPlayer[];
   allPlayers: Player[];
+  fieldPlacements?: FieldPlacement[];
+  savedArrangements?: FieldArrangement[];
   onUpdateFieldingPosition?: (playerId: string, newPos: FieldingPosition) => void;
+  onSaveArrangement?: (name: string) => void;
+  onLoadArrangement?: (arrangementId: string) => void;
   editable?: boolean;
 }
 
@@ -95,87 +105,121 @@ export const FIELD_PRESETS: Record<
 export const CricketFieldSvg: React.FC<CricketFieldSvgProps> = ({
   teamPlayers,
   allPlayers,
+  fieldPlacements = [],
+  savedArrangements = [],
   onUpdateFieldingPosition,
+  onSaveArrangement,
+  onLoadArrangement,
   editable = true,
 }) => {
   const [selectedFielderId, setSelectedFielderId] = useState<string | null>(null);
+  const [draggedFielderId, setDraggedFielderId] = useState<string | null>(null);
   const [activePreset, setActivePreset] = useState<'balanced' | 'attacking' | 'defensive'>('balanced');
+  const [arrangementName, setArrangementName] = useState('');
+  const idPrefix = useId().replace(/:/g, '');
+  const dragStart = useRef<{ x: number; y: number } | null>(null);
 
   const playersMap = new Map<string, Player>();
   allPlayers.forEach((p) => playersMap.set(p.id, p));
 
   // Determine positions for players
   const currentPositions = FIELD_PRESETS[activePreset].positions;
+  const placementsByPlayerId = new Map(fieldPlacements.map((placement) => [placement.playerId, placement]));
 
-  const fielders = teamPlayers.slice(0, 11).map((tp, idx) => {
+  const fielders = [...teamPlayers]
+    .sort((a, b) => a.battingOrder - b.battingOrder)
+    .slice(0, 11)
+    .map((tp, idx) => {
     const player = playersMap.get(tp.playerId);
+    const savedPlacement = placementsByPlayerId.get(tp.playerId);
     const assignedPos: FieldingPosition =
-      tp.fieldingPosition || (tp.isWicketkeeper ? 'Wicketkeeper' : currentPositions[idx] || 'Point');
+      savedPlacement?.position ||
+      tp.fieldingPosition ||
+      (tp.isWicketkeeper ? 'Wicketkeeper' : currentPositions[idx] || 'Point');
     const coords = FIELD_POSITION_COORDINATES[assignedPos] || { x: 50, y: 50, label: assignedPos };
 
-    return {
-      teamPlayer: tp,
-      player,
-      position: assignedPos,
-      coords,
-    };
-  });
-
-  const mobileRoleGroups = [
-    {
-      label: 'Wicket Keepers',
-      icon: Shield,
-      players: fielders.filter(
-        ({ teamPlayer, player }) => teamPlayer.isWicketkeeper || player?.primaryRole === 'Wicketkeeper',
-      ),
-    },
-    {
-      label: 'Batters',
-      icon: Sparkles,
-      players: fielders.filter(
-        ({ teamPlayer, player }) => !teamPlayer.isWicketkeeper && player?.primaryRole === 'Batter',
-      ),
-    },
-    {
-      label: 'All Rounders',
-      icon: Move,
-      players: fielders.filter(({ player }) => player?.primaryRole === 'All-rounder'),
-    },
-    {
-      label: 'Bowlers',
-      icon: Crosshair,
-      players: fielders.filter(({ player }) => player?.primaryRole === 'Bowler'),
-    },
-  ].filter((group) => group.players.length > 0);
+      return {
+        teamPlayer: tp,
+        player,
+        position: assignedPos,
+        coords,
+      };
+    });
 
   const handleApplyPreset = (presetKey: 'balanced' | 'attacking' | 'defensive') => {
     setActivePreset(presetKey);
     if (!onUpdateFieldingPosition) return;
 
-    const presetPositions = FIELD_PRESETS[presetKey].positions;
-    teamPlayers.slice(0, 11).forEach((tp, idx) => {
-      if (tp.isWicketkeeper) {
+    const presetPositions = FIELD_PRESETS[presetKey].positions.filter(
+      (position) => position !== 'Wicketkeeper',
+    );
+    const orderedPlayers = [...teamPlayers]
+      .sort((a, b) => a.battingOrder - b.battingOrder)
+      .slice(0, 11);
+    const wicketkeeperId = orderedPlayers.find((player) => player.isWicketkeeper)?.playerId;
+    let positionIndex = 0;
+    orderedPlayers.forEach((tp) => {
+      if (tp.playerId === wicketkeeperId) {
         onUpdateFieldingPosition(tp.playerId, 'Wicketkeeper');
       } else {
-        const nextPos = presetPositions[idx] === 'Wicketkeeper' ? presetPositions[10] : presetPositions[idx];
+        const nextPos = presetPositions[positionIndex] || 'Point';
+        positionIndex += 1;
         onUpdateFieldingPosition(tp.playerId, nextPos);
       }
     });
   };
 
-  const handlePositionSwap = (targetPosition: FieldingPosition) => {
-    if (!selectedFielderId || !onUpdateFieldingPosition) return;
-    onUpdateFieldingPosition(selectedFielderId, targetPosition);
+  const assignPosition = (playerId: string, targetPosition: FieldingPosition) => {
+    if (!onUpdateFieldingPosition) return;
+    const currentFielder = fielders.find(({ teamPlayer }) => teamPlayer.playerId === playerId);
+    const occupyingFielder = fielders.find(
+      ({ teamPlayer, position }) =>
+        teamPlayer.playerId !== playerId && position === targetPosition,
+    );
+    if (occupyingFielder && currentFielder) {
+      onUpdateFieldingPosition(occupyingFielder.teamPlayer.playerId, currentFielder.position);
+    }
+    onUpdateFieldingPosition(playerId, targetPosition);
     setSelectedFielderId(null);
+    setDraggedFielderId(null);
+  };
+
+  const handlePositionSwap = (targetPosition: FieldingPosition) => {
+    if (selectedFielderId) assignPosition(selectedFielderId, targetPosition);
+  };
+
+  const handleFieldPointerUp = (event: React.PointerEvent<SVGSVGElement>) => {
+    if (!editable || !draggedFielderId) return;
+    const start = dragStart.current;
+    dragStart.current = null;
+    if (!start || Math.hypot(event.clientX - start.x, event.clientY - start.y) < 6) {
+      setDraggedFielderId(null);
+      return;
+    }
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const pointerX = ((event.clientX - bounds.left) / bounds.width) * 100;
+    const pointerY = ((event.clientY - bounds.top) / bounds.height) * 100;
+    const nearestPosition = Object.entries(FIELD_POSITION_COORDINATES)
+      .map(([position, coordinates]) => ({
+        position: position as FieldingPosition,
+        distance: Math.hypot(coordinates.x - pointerX, coordinates.y - pointerY),
+      }))
+      .sort((a, b) => a.distance - b.distance)[0];
+
+    if (nearestPosition && nearestPosition.distance < 12) {
+      assignPosition(draggedFielderId, nearestPosition.position);
+    } else {
+      setDraggedFielderId(null);
+    }
   };
 
   return (
     <div className="flex flex-col gap-4">
       {/* Field Preset Controls */}
       <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-[#121720] rounded-xl border border-white/5 text-sm">
-        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#929BA8]">
-          <Crosshair className="w-4 h-4 text-[#20C878]" />
-          Fielding Presets:
+        <div className="flex items-center gap-2 text-xs font-semibold text-[#AEB3BC]">
+          <Crosshair className="h-4 w-4" />
+          Fielding presets
         </div>
         <div className="flex flex-wrap gap-2">
           {(['balanced', 'attacking', 'defensive'] as const).map((key) => (
@@ -183,120 +227,85 @@ export const CricketFieldSvg: React.FC<CricketFieldSvgProps> = ({
               key={key}
               type="button"
               onClick={() => handleApplyPreset(key)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              className={`min-h-9 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
                 activePreset === key
-                  ? 'bg-[#20C878] text-[#090B0F] font-semibold shadow-lg shadow-[#20C878]/20'
-                  : 'bg-[#181F29] text-[#929BA8] hover:text-white hover:bg-[#202938]'
+                  ? 'border-[#747B86] bg-[#343943] text-[#F5F5F6] font-semibold'
+                  : 'border-[#343943] bg-[#171A20] text-[#A0A5AE] hover:text-white'
               }`}
             >
-              {key === 'balanced' && '⚖️ Balanced'}
-              {key === 'attacking' && '⚡ Attacking (Slips)'}
-              {key === 'defensive' && '🛡️ Death (Boundary)'}
+              {key === 'balanced' && 'Balanced'}
+              {key === 'attacking' && 'Attacking'}
+              {key === 'defensive' && 'Defensive'}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Mobile role-based team view */}
-      <div className="relative isolate min-h-[560px] overflow-hidden rounded-2xl border border-emerald-300/20 bg-[#078a12] px-3 py-4 shadow-2xl sm:hidden">
-        <div className="pointer-events-none absolute inset-x-3 inset-y-3 rounded-[50%] border border-emerald-200/30" />
-        <div className="pointer-events-none absolute inset-x-[12%] inset-y-[17%] rounded-[50%] border border-emerald-200/20" />
-        <div className="pointer-events-none absolute left-1/2 top-1/2 h-36 w-10 -translate-x-1/2 -translate-y-1/2 rounded-sm border-y-2 border-white/20 bg-[#bdad62]/50" />
-
-        <div className="relative z-10 flex min-h-[528px] flex-col justify-between gap-5">
-          {mobileRoleGroups.map((group) => {
-            const GroupIcon = group.icon;
-            return (
-              <section key={group.label} className="flex flex-col items-center">
-                <h3 className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-950/30 px-2.5 py-1 text-[10px] font-bold text-white shadow-sm">
-                  <GroupIcon className="h-3 w-3" />
-                  {group.label}
-                </h3>
-                <div className="grid w-full grid-cols-3 justify-items-center gap-x-1 gap-y-3">
-                  {group.players.map(({ teamPlayer, player, position }) => {
-                    const isSelected = selectedFielderId === teamPlayer.playerId;
-                    return (
-                      <button
-                        key={teamPlayer.playerId}
-                        type="button"
-                        onClick={() => editable && setSelectedFielderId(isSelected ? null : teamPlayer.playerId)}
-                        aria-pressed={isSelected}
-                        aria-label={`${player?.displayName || 'Player'}, ${position}${teamPlayer.isCaptain ? ', captain' : ''}${teamPlayer.isViceCaptain ? ', vice captain' : ''}`}
-                        className={`relative flex min-w-0 flex-col items-center rounded-xl px-1 pb-0.5 transition-transform active:scale-95 ${
-                          editable ? 'cursor-pointer' : 'cursor-default'
-                        }`}
-                      >
-                        <div className={`relative h-14 w-12 overflow-visible ${isSelected ? 'drop-shadow-[0_0_5px_rgba(167,243,208,0.9)]' : ''}`}>
-                          {player?.imageUrl ? (
-                            <img
-                              src={player.imageUrl}
-                              alt=""
-                              className="h-full w-full object-contain object-bottom"
-                              loading="lazy"
-                            />
-                          ) : (
-                            <span className="flex h-full w-full items-end justify-center pb-1 text-xs font-bold text-white">
-                              {`P${teamPlayer.battingOrder}`}
-                            </span>
-                          )}
-                          {(teamPlayer.isCaptain || teamPlayer.isViceCaptain) && (
-                            <span
-                              className={`absolute -right-1 -top-1 rounded-full px-1 py-0.5 text-[7px] font-extrabold leading-none text-black ${
-                                teamPlayer.isCaptain ? 'bg-amber-300' : 'bg-sky-300'
-                              }`}
-                            >
-                              {teamPlayer.isCaptain ? 'C' : 'VC'}
-                            </span>
-                          )}
-                        </div>
-                        <span className="block w-full max-w-[86px] truncate rounded-full bg-[#181F29]/90 px-2 py-1 text-center text-[9px] font-semibold leading-none text-white">
-                          {player?.displayName || `Player ${teamPlayer.battingOrder}`}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
-            );
-          })}
-
-          {editable && selectedFielderId && (
-            <div className="flex items-center gap-2 rounded-xl border border-emerald-300/30 bg-[#101820]/95 p-2 text-[10px] text-white shadow-lg">
-              <label htmlFor="mobile-field-position" className="shrink-0 font-semibold">
-                Move to
-              </label>
-              <select
-                id="mobile-field-position"
-                defaultValue=""
-                onChange={(event) => {
-                  if (event.target.value) handlePositionSwap(event.target.value as FieldingPosition);
-                }}
-                className="min-w-0 flex-1 rounded-lg border border-white/10 bg-[#181F29] px-2 py-1.5 text-white"
-              >
-                <option value="" disabled>
-                  Select field position
-                </option>
-                {Object.keys(FIELD_POSITION_COORDINATES).map((position) => (
-                  <option key={position} value={position}>
-                    {position}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                onClick={() => setSelectedFielderId(null)}
-                className="shrink-0 rounded-lg bg-white/10 px-2 py-1.5"
-              >
-                Cancel
-              </button>
-            </div>
-          )}
+      {editable && (
+        <div className="flex flex-col gap-2 rounded-xl border border-[#262A32] bg-[#111318] p-3 sm:flex-row sm:items-center">
+          <label className="min-w-0 flex-1">
+            <span className="sr-only">Arrangement name</span>
+            <input
+              value={arrangementName}
+              onChange={(event) => setArrangementName(event.target.value)}
+              placeholder="Name this field arrangement"
+              maxLength={40}
+              className="min-h-10 w-full rounded-lg border border-[#343943] bg-[#171A20] px-3 text-xs text-[#F5F5F6] placeholder:text-[#747B86] focus:border-[#AEB3BC] focus:outline-none"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={() => {
+              const name = arrangementName.trim();
+              if (!name) return;
+              onSaveArrangement?.(name);
+              setArrangementName('');
+            }}
+            disabled={!arrangementName.trim() || !fielders.length || !onSaveArrangement}
+            className="min-h-10 rounded-lg border border-[#454B56] px-3 text-xs font-medium text-[#D2D4D9] hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Save arrangement
+          </button>
+          <label className="min-w-0 flex-1">
+            <span className="sr-only">Load saved field arrangement</span>
+            <select
+              defaultValue=""
+              onChange={(event) => {
+                if (event.target.value) onLoadArrangement?.(event.target.value);
+                event.target.value = '';
+              }}
+              disabled={!savedArrangements.length || !onLoadArrangement}
+              className="min-h-10 w-full rounded-lg border border-[#343943] bg-[#171A20] px-3 text-xs text-[#D2D4D9] focus:border-[#AEB3BC] focus:outline-none disabled:opacity-50"
+            >
+              <option value="">Load saved arrangement</option>
+              {savedArrangements.map((arrangement) => (
+                <option key={arrangement.id} value={arrangement.id}>{arrangement.name}</option>
+              ))}
+            </select>
+          </label>
         </div>
-      </div>
+      )}
 
       {/* Main SVG Cricket Ground */}
-      <div className="relative hidden w-full aspect-4/3 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-[#0c131a] shadow-2xl sm:flex sm:aspect-16/11">
-        <svg viewBox="0 0 1000 750" className="w-full h-full select-none">
+      <div className="relative flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-[#0c131a]">
+        <svg
+          viewBox="0 0 1000 750"
+          className="h-full w-full select-none touch-none"
+          onPointerUp={handleFieldPointerUp}
+          onPointerCancel={() => setDraggedFielderId(null)}
+          role="group"
+          aria-label="Top-down cricket field with assigned player positions"
+        >
+          <style>{`
+            @media (max-width: 640px) {
+              .field-player-disc { r: 28px; }
+              .field-player-portrait { x: -24px; y: -24px; width: 48px; height: 48px; }
+              .field-player-name { font-size: 19px; }
+              .field-role-tag { font-size: 15px; }
+              .field-role-badge { r: 10px; }
+              .field-role-letter { font-size: 9px; }
+            }
+          `}</style>
           <defs>
             {/* Realistic grass radial gradient */}
             <radialGradient id="grassGradient" cx="50%" cy="50%" r="50%">
@@ -319,12 +328,6 @@ export const CricketFieldSvg: React.FC<CricketFieldSvgProps> = ({
               <stop offset="100%" stopColor="#d3b17d" />
             </linearGradient>
 
-            <filter id="playerGlow" x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="#000000" floodOpacity="0.8" />
-            </filter>
-            <filter id="activeGlow" x="-30%" y="-30%" width="160%" height="160%">
-              <feDropShadow dx="0" dy="0" stdDeviation="6" floodColor="#20C878" floodOpacity="0.9" />
-            </filter>
           </defs>
 
           {/* Outfield Grass */}
@@ -332,7 +335,7 @@ export const CricketFieldSvg: React.FC<CricketFieldSvgProps> = ({
 
           {/* Boundary Rope Line */}
           <ellipse cx="500" cy="375" rx="450" ry="330" fill="none" stroke="#ffffff" strokeWidth="3" strokeDasharray="14,6" opacity="0.85" />
-          <ellipse cx="500" cy="375" rx="453" ry="333" fill="none" stroke="#20C878" strokeWidth="1" opacity="0.4" />
+          <ellipse cx="500" cy="375" rx="453" ry="333" fill="none" stroke="#B7BBC4" strokeWidth="1" opacity="0.4" />
 
           {/* 30-Yard Inner Circle */}
           <ellipse cx="500" cy="375" rx="270" ry="195" fill="url(#infieldGradient)" stroke="#ffffff" strokeWidth="2" strokeDasharray="8,6" opacity="0.6" />
@@ -365,6 +368,9 @@ export const CricketFieldSvg: React.FC<CricketFieldSvgProps> = ({
             <line x1="-20" y1="0" x2="20" y2="0" stroke="#ffffff" strokeWidth="1" />
           </g>
 
+          <title>Cricket field positions</title>
+          <desc>Drag a player marker to a named position. Select a player, then choose a marked position to move them.</desc>
+
           {/* Available Target Spots for Click/Swap */}
           {selectedFielderId &&
             Object.entries(FIELD_POSITION_COORDINATES).map(([posKey, spotCoords]) => {
@@ -373,10 +379,19 @@ export const CricketFieldSvg: React.FC<CricketFieldSvgProps> = ({
               return (
                 <g
                   key={`spot-${posKey}`}
-                  className="cursor-pointer transition-all hover:scale-125"
+                  className="cursor-pointer"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Move selected player to ${posKey}`}
                   onClick={() => handlePositionSwap(posKey as FieldingPosition)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      handlePositionSwap(posKey as FieldingPosition);
+                    }
+                  }}
                 >
-                  <circle cx={svgX} cy={svgY} r="16" fill="#3BA7FF" fillOpacity="0.3" stroke="#3BA7FF" strokeWidth="2" strokeDasharray="3,3" />
+                  <circle cx={svgX} cy={svgY} r="16" fill="#B7BBC4" fillOpacity="0.25" stroke="#D2D4D9" strokeWidth="2" strokeDasharray="3,3" />
                   <text x={svgX} y={svgY + 4} textAnchor="middle" fill="#ffffff" fontSize="9" fontWeight="bold">
                     +
                   </text>
@@ -389,33 +404,39 @@ export const CricketFieldSvg: React.FC<CricketFieldSvgProps> = ({
             const svgX = (coords.x / 100) * 1000;
             const svgY = (coords.y / 100) * 750;
             const isSelected = selectedFielderId === teamPlayer.playerId;
-            const isKeeper = teamPlayer.isWicketkeeper || position === 'Wicketkeeper';
+            const isKeeper = teamPlayer.isWicketkeeper;
             const isBowler = position === 'Bowler';
 
             return (
               <g
                 key={teamPlayer.playerId}
                 transform={`translate(${svgX}, ${svgY})`}
-                className="cursor-pointer transition-transform duration-200"
+                className={`${editable ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
+                role={editable ? 'button' : undefined}
+                tabIndex={editable ? 0 : undefined}
+                aria-label={`${player?.displayName || 'Player'}, ${position}${teamPlayer.isCaptain ? ', captain' : ''}${teamPlayer.isViceCaptain ? ', vice-captain' : ''}${isKeeper ? ', wicketkeeper' : ''}`}
+                onPointerDown={(event) => {
+                  if (!editable) return;
+                  event.stopPropagation();
+                  setSelectedFielderId(teamPlayer.playerId);
+                  setDraggedFielderId(teamPlayer.playerId);
+                  dragStart.current = { x: event.clientX, y: event.clientY };
+                  event.currentTarget.ownerSVGElement?.setPointerCapture(event.pointerId);
+                }}
+                onKeyDown={(event) => {
+                  if (!editable || (event.key !== 'Enter' && event.key !== ' ')) return;
+                  event.preventDefault();
+                  setSelectedFielderId(isSelected ? null : teamPlayer.playerId);
+                }}
                 onClick={() => {
                   if (editable) {
                     setSelectedFielderId(isSelected ? null : teamPlayer.playerId);
                   }
                 }}
-                filter={isSelected ? 'url(#activeGlow)' : 'url(#playerGlow)'}
               >
                 {/* Selection ring animation */}
                 {isSelected && (
-                  <circle cx="0" cy="0" r="30" fill="none" stroke="#20C878" strokeWidth="3" strokeDasharray="5,3">
-                    <animateTransform
-                      attributeName="transform"
-                      type="rotate"
-                      from="0"
-                      to="360"
-                      dur="8s"
-                      repeatCount="indefinite"
-                    />
-                  </circle>
+                  <circle cx="0" cy="0" r="30" fill="none" stroke="#D2D4D9" strokeWidth="3" strokeDasharray="5,3" />
                 )}
 
                 {/* Outer Player Badge Disc */}
@@ -423,33 +444,55 @@ export const CricketFieldSvg: React.FC<CricketFieldSvgProps> = ({
                   cx="0"
                   cy="0"
                   r="20"
-                  fill={isKeeper ? '#F59E0B' : isBowler ? '#EF4444' : '#181F29'}
-                  stroke={isSelected ? '#20C878' : '#ffffff'}
+                  className="field-player-disc"
+                  fill={isKeeper ? '#C3C7CE' : isBowler ? '#858B96' : '#171A20'}
+                  stroke={isSelected ? '#F5F5F6' : '#ffffff'}
                   strokeWidth={isSelected ? '3' : '2'}
                 />
+
+                {player?.imageUrl && (
+                  <>
+                    <defs>
+                      <clipPath id={`field-player-${idPrefix}-${teamPlayer.playerId.replace(/[^a-zA-Z0-9_-]/g, '-')}`}>
+                        <circle cx="0" cy="0" r="18" />
+                      </clipPath>
+                    </defs>
+                    <image
+                      href={player.imageUrl}
+                      x="-18"
+                      y="-18"
+                      width="36"
+                      height="36"
+                      preserveAspectRatio="xMidYMid slice"
+                      clipPath={`url(#field-player-${idPrefix}-${teamPlayer.playerId.replace(/[^a-zA-Z0-9_-]/g, '-')})`}
+                      className="field-player-portrait"
+                    />
+                  </>
+                )}
 
                 {/* Captain / VC / Role indicator icon */}
                 {teamPlayer.isCaptain && (
                   <g transform="translate(-16, -18)">
-                    <circle cx="0" cy="0" r="8" fill="#F9CD05" stroke="#000" strokeWidth="1" />
-                    <text x="0" y="3" textAnchor="middle" fill="#000" fontSize="8" fontWeight="bold">C</text>
+                    <circle className="field-role-badge" cx="0" cy="0" r="8" fill="#D2D4D9" stroke="#111318" strokeWidth="1" />
+                    <text className="field-role-letter" x="0" y="3" textAnchor="middle" fill="#111318" fontSize="8" fontWeight="bold">C</text>
                   </g>
                 )}
                 {teamPlayer.isViceCaptain && !teamPlayer.isCaptain && (
                   <g transform="translate(-16, -18)">
-                    <circle cx="0" cy="0" r="8" fill="#3BA7FF" stroke="#000" strokeWidth="1" />
-                    <text x="0" y="3" textAnchor="middle" fill="#000" fontSize="7" fontWeight="bold">VC</text>
+                    <circle className="field-role-badge" cx="0" cy="0" r="8" fill="#858B96" stroke="#111318" strokeWidth="1" />
+                    <text className="field-role-letter" x="0" y="3" textAnchor="middle" fill="#111318" fontSize="7" fontWeight="bold">VC</text>
                   </g>
                 )}
                 {isKeeper && (
                   <g transform="translate(16, -18)">
-                    <circle cx="0" cy="0" r="8" fill="#10B981" stroke="#000" strokeWidth="1" />
-                    <text x="0" y="3" textAnchor="middle" fill="#fff" fontSize="7" fontWeight="bold">WK</text>
+                    <circle className="field-role-badge" cx="0" cy="0" r="8" fill="#D2D4D9" stroke="#111318" strokeWidth="1" />
+                    <text className="field-role-letter" x="0" y="3" textAnchor="middle" fill="#111318" fontSize="7" fontWeight="bold">WK</text>
                   </g>
                 )}
 
                 {/* Player Initials */}
                 <text
+                  className="field-player-name"
                   x="0"
                   y="4"
                   textAnchor="middle"
@@ -471,10 +514,11 @@ export const CricketFieldSvg: React.FC<CricketFieldSvgProps> = ({
                     rx="9"
                     fill="#090B0F"
                     fillOpacity="0.88"
-                    stroke={isSelected ? '#20C878' : 'rgba(255,255,255,0.2)'}
+                    stroke={isSelected ? '#D2D4D9' : 'rgba(255,255,255,0.2)'}
                     strokeWidth="1"
                   />
                   <text
+                    className="field-role-tag"
                     x="0"
                     y="2"
                     textAnchor="middle"
@@ -493,7 +537,7 @@ export const CricketFieldSvg: React.FC<CricketFieldSvgProps> = ({
                     x="0"
                     y="0"
                     textAnchor="middle"
-                    fill="#20C878"
+                    fill="#E3E5E9"
                     fontSize="8"
                     fontWeight="700"
                     letterSpacing="0.5"
@@ -508,11 +552,11 @@ export const CricketFieldSvg: React.FC<CricketFieldSvgProps> = ({
 
         {/* Floating guidance helper */}
         {selectedFielderId && (
-          <div className="absolute top-4 left-4 right-4 bg-[#181F29]/95 backdrop-blur-md border border-[#20C878]/40 p-3 rounded-xl shadow-xl flex items-center justify-between text-xs text-white">
+          <div className="absolute left-2 right-2 top-2 flex items-center justify-between gap-2 rounded-xl border border-white/15 bg-[#111318]/95 p-2 text-[10px] text-white sm:left-4 sm:right-4 sm:top-4 sm:p-3 sm:text-xs">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#20C878] animate-ping" />
+              <span className="h-2 w-2 shrink-0 rounded-full bg-[#B7BBC4]" />
               <span>
-                Click any <strong>highlighted blue spot</strong> on the field to move{' '}
+                Drag to a fielding position or select a position below for{' '}
                 <strong>
                   {playersMap.get(selectedFielderId)?.displayName || 'Fielder'}
                 </strong>.
@@ -532,27 +576,27 @@ export const CricketFieldSvg: React.FC<CricketFieldSvgProps> = ({
       {/* Field Positions legend */}
       <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2 text-[11px] text-[#929BA8] bg-[#121720] p-3 rounded-xl border border-white/5">
         <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B]" />
+          <span className="h-2.5 w-2.5 rounded-full bg-[#C3C7CE]" />
           <span>Wicketkeeper</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#EF4444]" />
+          <span className="h-2.5 w-2.5 rounded-full bg-[#858B96]" />
           <span>Bowler (Crease)</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#181F29] border border-white/40" />
+          <span className="h-2.5 w-2.5 rounded-full border border-white/40 bg-[#171A20]" />
           <span>Infield / Ring</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#20C878]" />
+          <span className="h-2.5 w-2.5 rounded-full bg-[#D2D4D9]" />
           <span>Boundary Rider</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <Crown className="w-3 h-3 text-[#F9CD05]" />
+          <Crown className="h-3 w-3 text-[#C3C7CE]" />
           <span>Captain (C)</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <Shield className="w-3 h-3 text-[#3BA7FF]" />
+          <Shield className="h-3 w-3 text-[#A0A5AE]" />
           <span>Vice-Captain (VC)</span>
         </div>
       </div>
